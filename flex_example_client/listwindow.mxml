@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Id: listwindow.mxml,v 1.6 2007/04/24 15:16:03 rd Exp $  -->
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" 
+	close="fadeOut.play([this]);"
+	creationComplete="TimerStart();"
+	layout="vertical" 
+	width="453" height="366"
+	title="loading, please wait..."
+	showCloseButton="true"
+	resizeEffect="resizeEffect"
+	horizontalScrollPolicy="off"
+	verticalScrollPolicy="off"
+	keyDown="windowKeyPress(event)"
+	doubleClickEnabled="true"
+	x="300"
+	y="50"
+	doubleClick="windowDoubleClick(event);">
+
+<mx:Resize heightFrom="366" heightTo="30" id="windowResizeEffect1" duration="500"/>
+<mx:Resize heightFrom="366" heightTo="0" id="resizeEffect1" duration="500"/>
+<mx:Resize heightFrom="0" heightTo="66" id="resizeEffect2" duration="200"/>
+<mx:Fade id="fade" alphaFrom="0" alphaTo="1" duration="500" /> 
+<mx:Blur id="blur" blurXTo="10" blurYTo="10" blurXFrom="0" blurYFrom="0" duration="500" /> 
+<mx:Fade id="fadeOut" alphaTo="0" duration="500" effectStart="{resizeEffect1.play([this]); blur.play([this])}" effectEnd="{PopUpManager.removePopUp(this);}"/>
+
+<mx:HTTPService 
+    id="serverRequest" 
+	fault="serverRequest.clearResult(true);"
+    useProxy="false" 
+	concurrency="single"
+	requestTimeout="45"
+    showBusyCursor="true"
+	result="resultHandler(event)"/>
+
+	<mx:Script>
+		<![CDATA[
+		import mx.collections.ArrayCollection;
+		import mx.utils.ArrayUtil;
+		import mx.rpc.events.ResultEvent;
+		import mx.events.ListEvent;
+		import mx.collections.Sort;
+		import mx.collections.SortField;
+       	import mx.managers.PopUpManager;
+		
+   		public var vert:int = 0;
+   		public var sort:Sort = null;
+   		public var sel:String = null;
+   		public var searchString:String = null;
+   		public var winTitle:String = '';
+   		public var server:Boolean = false;
+   		public var startDatum:Date = null;
+   		public var startHTid:int = 0;
+   		public var startMTid:int = 0;
+		private var expcontant:Number = 0.00000007;
+		private var intervalText:String;
+
+		[Bindable]
+		private var myData:ArrayCollection;
+
+		[Bindable]
+   		private var colTitle:String = "";
+
+		private function resultHandler(event:ResultEvent):void {
+			if (serverRequest.lastResult.items != null) {
+				var dd:Boolean = serverRequest.lastResult.items.item is ArrayCollection;
+				if (dd) {
+					myData = serverRequest.lastResult.items.item;
+				} else {
+					myData = new ArrayCollection([{position: serverRequest.lastResult.items.item.position, qcount: serverRequest.lastResult.items.item.qcount, domain: serverRequest.lastResult.items.item.domain, displaytext: serverRequest.lastResult.items.item.displaytext}]);
+				}
+				
+				if (sort != null) {
+					myData.sort = sort;
+		        	myData.refresh();
+				}
+
+				if (searchString == null) {
+					title = "Top domains for " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
+					colTitle = "Domain";
+				} else if (searchString == "--topservers--") {
+					title = "Top servers for " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
+					colTitle = "Server";
+				} else {
+  				  if (!server) { 
+  				  	title = "Servers asking about " + ((winTitle == "") ? searchString : winTitle) + " - " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
+  				  	colTitle = "Server"; 
+  				  } else {
+  				  	title = "Queries from " + ((winTitle == "") ? searchString : winTitle) + " - " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
+  				  	colTitle = "Query";
+  				  }
+				}
+	
+				myData.filterFunction = filterListItem;
+				myData.refresh();
+	
+				for( var i:int = 0; i < myData.length; ++i ) {
+					if (myData[i].domain == sel) { serverGrid.selectedIndex = i; }
+				}
+	        	serverGrid.verticalScrollPosition = vert;
+
+			} else {
+				myData = null;
+				if (searchString == null) {
+					title = "No data for " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
+				} else {
+  				  if (!server) { 
+  				  	title = "Servers asking about " + ((winTitle == "") ? searchString : winTitle) + " - " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
+  				  	colTitle = "Server"; 
+  				  } else {
+  				  	title = "Queries from " + ((winTitle == "") ? searchString : winTitle) + " - " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
+  				  	colTitle = "Query";
+  				  }
+// 					title = searchString + " - no data for " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
+				}
+			}
+
+
+		}
+		
+		private function doubleDigits(val:int): String
+		{
+		  if (val > 9) {return String(val)} else {return "0" + String(val)}
+		}
+
+
+        public function TimerStart():void {
+//            var myTimer:Timer = new Timer(60000, 9999);
+//            myTimer.addEventListener("timer", timerHandler);
+//            myTimer.start();
+
+			if (searchString == null) { x = 10; y = 10; showCloseButton=false; }
+			if (searchString == "--topservers--") { x = 475; y = 10; showCloseButton=false; }
+
+			fade.play([this]);
+
+		    if (startDatum != null) {
+				idate.selectedDate = startDatum;
+				mCombo.selectedIndex = startMTid;
+				hCombo.selectedIndex = startHTid;
+		    } else {
+				idate.selectedDate = new Date();
+				var hourV:int = new Date().hours; 
+				var minV:int = new Date().minutes;
+				if (minV < 3) { minV = 59; hourV -= 1; }
+				mCombo.selectedIndex = minV-3;
+				hCombo.selectedIndex = hourV;		    	
+		    }
+			update();
+        }
+
+		public function filterListItem(item:Object):Boolean {
+			
+			if ((item.displaytext.indexOf(filterText.text) > -1)) {
+				return true;
+			} else {
+				return false;
+			}
+			
+		}
+
+        public function timerHandler(event:TimerEvent):void {
+
+        }
+
+        public function update():void {
+			serverGrid.horizontalScrollPosition = 0;
+			vert = serverGrid.verticalScrollPosition;
+			if (serverGrid.selectedItem != null) {sel = serverGrid.selectedItem.domain;}
+
+			if ( myData != null) { sort = myData.sort };
+
+    		serverRequest.url=parentApplication.scriptUrl + "?&day=" + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + "&time=" + doubleDigits(int(hCombo.selectedItem)) + "_" + doubleDigits(int(mCombo.selectedItem)) + "&count=" + listCount.text + "&search=" + searchString + "&server=" + server + "&" + Math.random();
+			serverRequest.send();
+			title = "loading, please wait...";
+	  	}
+
+		private function windowDoubleClick(event: MouseEvent):void {
+			if ((event.stageY-y) < 30) {
+					windowResizeEffect1.heightFrom = 366;
+	
+				if (height < 50) {
+					windowResizeEffect1.play([this],true);
+				} else {
+					windowResizeEffect1.play([this],false);
+				}
+			}
+		}
+	
+		private function windowKeyPress(event:KeyboardEvent):void {
+
+			if (event.ctrlKey) {
+				switch(event.keyCode) {
+				    case 37: // Left
+				      idate.selectedDate = new Date(idate.selectedDate.valueOf()-(1000*60*60*24));
+					  update();
+	
+		  		      break;
+				    case 39: // Right
+				   	  idate.selectedDate = new Date(idate.selectedDate.valueOf()+(1000*60*60*24));
+					  update();
+		  		      break;
+		  			}
+				} else {
+			if (event.shiftKey) {
+				switch(event.keyCode) {
+				    case 37: // Left
+				      if (hCombo.selectedIndex == 0) {
+				    	idate.selectedDate = new Date(idate.selectedDate.valueOf()-(1000*60*60*24));
+					  	hCombo.selectedIndex = 23;
+					  } else {
+					  	hCombo.selectedIndex -= 1;
+					  }
+					  update();
+	
+		  		      break;
+				    case 39: // Right
+					    if (hCombo.selectedIndex == 23) {
+					    	idate.selectedDate = new Date(idate.selectedDate.valueOf()+(1000*60*60*24));
+						  	hCombo.selectedIndex = 0;
+						} else {
+						  	hCombo.selectedIndex += 1;
+						}
+					  update();
+		  		      break;
+		  			}
+				} else {
+				switch(event.keyCode) {
+				    case 37: // Left
+					  if (mCombo.selectedIndex == 0) {
+					    if (hCombo.selectedIndex == 0) {
+					    	idate.selectedDate = new Date(idate.selectedDate.valueOf()-(1000*60*60*24));
+						  	hCombo.selectedIndex = 23;
+						  	mCombo.selectedIndex = 11;
+						  } else {
+						  	hCombo.selectedIndex -= 1;
+						  	mCombo.selectedIndex = 11;
+						  }
+					  } else {
+					  	mCombo.selectedIndex -= 1;
+					  }
+					  update();
+	
+		  		      break;
+				    case 39: // Right
+					  if (mCombo.selectedIndex == 11) {
+					    if (hCombo.selectedIndex == 23) {
+					    	idate.selectedDate = new Date(idate.selectedDate.valueOf()+(1000*60*60*24));
+						  	hCombo.selectedIndex = 0;
+						  	mCombo.selectedIndex = 0;
+						} else {
+						  	hCombo.selectedIndex += 1;
+						  	mCombo.selectedIndex = 0;
+						}
+					  } else {
+					  	mCombo.selectedIndex += 1;
+					  }
+					  update();
+		  		      break;
+				}
+			}
+			}
+			
+		}
+
+		private function dataGridClick(event:ListEvent):void {
+			if (event.itemRenderer.data.hasOwnProperty("domain")) {
+				var val:Boolean;
+				if (searchString == null) {
+					val = false;
+				} else {
+					if ((!server) && (searchString != null)) {
+						val = true;
+					}
+				}
+
+				var dd:String = "";
+				if (val) { dd = event.itemRenderer.data.displaytext; }
+				parentApplication.openWindow(event.itemRenderer.data.domain, idate.selectedDate, hCombo.value, mCombo.value, val, dd);
+			}
+		}
+
+		private function copyToClipBoard(event:ListEvent):void {
+			System.setClipboard(event.itemRenderer.data.displaytext);
+		}
+
+
+		private function cloneWin(event:MouseEvent):void {
+			parentApplication.openWindow(searchString, idate.selectedDate, hCombo.value, mCombo.value, server, "");
+		}
+
+
+		]]>
+	</mx:Script>
+	<mx:HBox keyDown="windowKeyPress(event)" id="optionhbox1" horizontalScrollPolicy="off" verticalScrollPolicy="off" horizontalAlign="center" verticalAlign="middle">
+	    <mx:DateField id="idate" change="update()" formatString="YYYY-MM-DD" disabledRanges="{[ {rangeStart: new Date()} ]}"/>
+		<mx:ComboBox keyDown="windowKeyPress(event)" rowCount="15" id="hCombo" change="update()" width="50">
+            <mx:dataProvider>
+               <mx:Array>
+                  <mx:String>00</mx:String>
+                  <mx:String>01</mx:String>
+                  <mx:String>02</mx:String>
+                  <mx:String>03</mx:String>
+                  <mx:String>04</mx:String>
+                  <mx:String>05</mx:String>
+                  <mx:String>06</mx:String>
+                  <mx:String>07</mx:String>
+                  <mx:String>08</mx:String>
+                  <mx:String>09</mx:String>
+                  <mx:String>10</mx:String>
+                  <mx:String>11</mx:String>
+                  <mx:String>12</mx:String>
+                  <mx:String>13</mx:String>
+                  <mx:String>14</mx:String>
+                  <mx:String>15</mx:String>
+                  <mx:String>16</mx:String>
+                  <mx:String>17</mx:String>
+                  <mx:String>18</mx:String>
+                  <mx:String>19</mx:String>
+                  <mx:String>20</mx:String>
+                  <mx:String>21</mx:String>
+                  <mx:String>22</mx:String>
+                  <mx:String>23</mx:String>
+                </mx:Array>
+            </mx:dataProvider>				
+		</mx:ComboBox>
+	
+		<mx:ComboBox keyDown="windowKeyPress(event)" rowCount="15" id="mCombo" change="update()" width="50">
+            <mx:dataProvider>
+               <mx:Array>
+                  <mx:String>00</mx:String>
+                  <mx:String>05</mx:String>
+                  <mx:String>10</mx:String>
+                  <mx:String>15</mx:String>
+                  <mx:String>20</mx:String>
+                  <mx:String>25</mx:String>
+                  <mx:String>30</mx:String>
+                  <mx:String>35</mx:String>
+                  <mx:String>40</mx:String>
+                  <mx:String>45</mx:String>
+                  <mx:String>50</mx:String>
+                  <mx:String>55</mx:String>
+                </mx:Array>
+            </mx:dataProvider>				
+		</mx:ComboBox>
+		<mx:TextInput id="filterText" change="{myData.refresh();}" width="120"/>
+		<mx:ComboBox id="listCount" change="update()" editable="true" text="20" width="76">
+            <mx:dataProvider>
+               <mx:Array>
+                  <mx:String>20</mx:String>
+                  <mx:String>100</mx:String>
+                  <mx:String>200</mx:String>
+                  <mx:String>500</mx:String>
+                  <mx:String>1000</mx:String>
+                </mx:Array>
+            </mx:dataProvider>
+		</mx:ComboBox>
+		<mx:Button visible="false" label="Clone" click="cloneWin(event)" width="43"/>
+	
+	</mx:HBox>
+
+	<mx:DataGrid keyDown="windowKeyPress(event)" id="serverGrid" itemClick="copyToClipBoard(event)" itemDoubleClick="dataGridClick(event);" editable="false" sortableColumns="true" dataProvider="{myData}" horizontalScrollPolicy="auto" verticalScrollPolicy="auto" height="100%" width="100%">
+		<mx:columns>
+		    <mx:DataGridColumn showDataTips="true" width="33"  headerText="Pos" dataTipField="Position" dataField="position"/>
+		    <mx:DataGridColumn showDataTips="true" width="75"  headerText="Load (q/m)" dataTipField="Count" dataField="qcount"/>
+		    <mx:DataGridColumn showDataTips="true" width="145" headerText="{colTitle}" dataTipField="domain" dataField="displaytext"/>
+		</mx:columns>
+	</mx:DataGrid>
+</mx:TitleWindow>
