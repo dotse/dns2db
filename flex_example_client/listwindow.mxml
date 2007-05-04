@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Id: listwindow.mxml,v 1.6 2007/04/24 15:16:03 rd Exp $  -->
+<!-- $Id: listwindow.mxml,v 1.7 2007/05/03 16:14:52 rd Exp $  -->
 <mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" 
 	close="fadeOut.play([this]);"
 	creationComplete="TimerStart();"
@@ -142,7 +142,7 @@
 				var hourV:int = new Date().hours; 
 				var minV:int = new Date().minutes;
 				if (minV < 3) { minV = 59; hourV -= 1; }
-				mCombo.selectedIndex = minV-3;
+				mCombo.selectedIndex = (minV/12)-1;
 				hCombo.selectedIndex = hourV;		    	
 		    }
 			update();
