@@ -169,7 +169,7 @@
 
 			if ( myData != null) { sort = myData.sort };
 
-    		serverRequest.url=parentApplication.scriptUrl + "?&day=" + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + "&time=" + doubleDigits(int(hCombo.selectedItem)) + "_" + doubleDigits(int(mCombo.selectedItem)) + "&count=" + listCount.text + "&search=" + searchString + "&server=" + server + "&" + Math.random();
+    		serverRequest.url=parentApplication.scriptUrl + "?&day=" + idate.selectedDate.fullYear + "" + doubleDigits(idate.selectedDate.month+1) + "" + doubleDigits(idate.selectedDate.date) + "&time=" + doubleDigits(int(hCombo.selectedItem)) + "" + doubleDigits(int(mCombo.selectedItem)) + "&count=" + listCount.text + "&search=" + searchString + "&server=" + server + "&" + Math.random();
 			serverRequest.send();
 			title = "loading, please wait...";
 	  	}
@@ -275,7 +275,7 @@
 
 				var dd:String = "";
 				if (val) { dd = event.itemRenderer.data.displaytext; }
-				parentApplication.openWindow(event.itemRenderer.data.domain, idate.selectedDate, hCombo.value, mCombo.value, val, dd);
+				parentApplication.openWindow(event.itemRenderer.data.domain, idate.selectedDate, hCombo.value, mCombo.selectedIndex, val, dd);
 			}
 		}
 
@@ -285,7 +285,7 @@
 
 
 		private function cloneWin(event:MouseEvent):void {
-			parentApplication.openWindow(searchString, idate.selectedDate, hCombo.value, mCombo.value, server, "");
+			parentApplication.openWindow(searchString, idate.selectedDate, hCombo.value, mCombo.selectedIndex, server, "");
 		}
 
 
