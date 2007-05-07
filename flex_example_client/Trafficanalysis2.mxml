@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- $Id$  -->
 <mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" 
 	layout="absolute"
 	creationComplete="scriptUrl = Application.application.parameters.url; openWindow(null,null,0,0,false,''); openWindow('--topservers--',null,0,0,false,'');"

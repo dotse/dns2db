@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- $Id: listwindow.mxml,v 1.7 2007/05/03 16:14:52 rd Exp $  -->
+<!-- $Id$  -->
 <mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" 
 	close="fadeOut.play([this]);"
 	creationComplete="TimerStart();"
