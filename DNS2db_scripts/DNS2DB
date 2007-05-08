@@ -1,0 +1,25 @@
+#!/bin/sh
+
+case "$1" in
+start)
+	mkdir -p /mnt/dns2db
+        /sbin/mdmfs -s 256M md9 /mnt/dns2db ## Ramdisk on FreeBSD
+	# mount -t tmpfs none /mnt/dns2db -o size=256m	## Ramdisk on Linux
+        echo "256MB ramdisk created on /dev/md9 and mounted on /mnt/dns2db"
+	./$2 &
+	split_pid=$! ; echo $split_pid > /var/run/split_pid
+        exit 0
+        ;;
+stop)
+        /sbin/umount /mnt/dns2db
+        /sbin/mdconfig -d -u 9
+        echo "ramdisk unmounted from /mnt/dns2db and deleted from /dev/md9"
+	kill `cat /var/run/tcpdump_pid` & rm /var/run/tcpdump_pid
+	kill `cat /var/run/split_pid` & rm /var/run/split_pid
+	rm -rf /mnt/dns2db
+        ;;
+*)
+        echo "Usage: `basename $0` {start|stop} script" >&2
+        exit 64
+        ;;
+esac

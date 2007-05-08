@@ -1,0 +1,30 @@
+PROG=dns2db
+CC=@CC@
+LIB=@LIBS@
+LDFLAGS=@LDFLAGS@ 
+LIBOBJS=@LIBOBJS@
+CFLAGS= @CFLAGS@ @CPPFLAGS@ @DEFS@
+
+
+OBJS=dns2db.o \
+	read_pcap.o \
+	arg_handle.o \
+	e_filter.o 
+
+
+
+
+all: $(PROG)
+
+
+
+$(PROG): $(OBJS)
+	$(CXX) -o $@ $(OBJS) $(LDFLAGS) $(LIBOBJ) $(LIB)
+
+
+clean:
+	rm -rf $(OBJS)
+	rm -rf $(PROG)
+
+clean_temp:
+	rm -rf *~

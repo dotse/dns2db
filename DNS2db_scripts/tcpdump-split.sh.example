@@ -1,0 +1,101 @@
+#!/bin/sh
+### Edit the parameters below.
+
+### Parameters
+
+## Name of the DNS server. Parameter is used first in filename when creating
+## tcpdump files and sql files.
+server="servername"
+
+## Directory to write pcap files into when collecting
+directory="/logg/somewhere"
+
+## Ramdisk where database is created and indexed
+workdir=/mnt/dns2db
+
+## Final directory where databases and pcap files are stored
+destdir=/logg/storage
+
+## chmod finished files to serve from apache
+user=www
+
+## Name of the network interface to monitor
+interface=em1
+
+## How often to rotate dump file, in seconds
+interval=300
+
+## IPv4 and IPv6 addresses of dns servers, separated by "or"
+hosts="11.22.33.44 or 2a01:11:1:11::11"
+
+## Set the timezone
+TZ=Europe/Stockholm
+export TZ
+
+### choose a packet filter:
+## collect TCP and UDP, requests and responses:
+filter="host (${hosts}) and port 53"
+
+## collect UDP requests, and TCP requests and responses.
+# filter="(udp and dst host (${hosts}) and dst port 53) or (tcp and host (${hosts}) and port 53)"
+
+## collect TCP and UDP requests
+# filter="dst host (${hosts}) and dst port 53"
+
+## collect UDP requests
+# filter="udp and dst host (${hosts}) and dst port 53"
+
+
+#### End of parameters
+
+tcpdump="tcpdump -w- -i${interface} -s0 ${filter}"
+split="./tcpdump-split ${interval} ${directory}/${server}.%Y%m%d_%H%M.pcap ${directory}/work.tmp"
+test -d "${directory}" || mkdir -p ${directory}
+if [ "${directory}"/fifo ] ; then
+	rm "${directory}"/fifo 
+fi
+
+
+exec 3>&2
+
+    fifo="${directory}/fifo"
+    mkfifo "${fifo}" || exit $?
+    ${split} <"${fifo}" &
+    split_pid=$!
+    ${tcpdump} >"${fifo}" &
+    tcpdump_pid=$! ; echo $tcpdump_pid > /var/run/tcpdump_pid
+
+    sleep 1;
+    kill -0 $tcpdump_pid || {
+	echo "tcpdump is not running." >&3
+	exit 1
+    }
+    echo "tcpdump is running." >&3
+
+    kill -0 $split_pid || {
+	echo "tcpdump-split is not running." >&3
+	exit 1
+    }
+    echo "tcpdump-split is running." >&3
+
+
+
+cd $directory
+
+while [ 1 ] ; do
+        for i in `ls *.pcap`
+                do
+                dns2db $i -d $workdir/$i.db
+                gzip -9 $i &
+                echo "CREATE INDEX index_Client_Qname on Q (Client, Qname); CREATE INDEX index_E1 on Q (E1);" | sqlite3 $workdir/$i.db
+                dir=`echo $i | sed -E "s/[^.]*.//; s/_.*//"`
+                mkdir -p $destdir/$dir
+		db=`echo $i | sed -E "s/.pcap//"`
+		mv $workdir/$i.db $destdir/$dir/$db.db &
+		mv $i.gz $destdir/$dir/ &
+		
+		/usr/sbin/chown -R $user $destdir/$dir
+		chmod -R 755 $destdir/$dir/
+		done
+	sleep 60
+	done

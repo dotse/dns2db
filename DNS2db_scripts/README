@@ -1,0 +1,7 @@
+DNS2DB
+
+This directory contains tools and scripts needed to collect dns traffic from your network 
+interface and storing it to sqlite3 databases.
+
+Read INSTALL for installation instructions
+
