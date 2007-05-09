@@ -1,8 +1,8 @@
 ### Installation instructions for DNS2db scripts ###
 (c) iis.se, 2007
 
-# These instructions assume that the dns2db binary is already installed
-# and in your $PATH.
+# These instructions assume that the dns2db and tcpdump binaries is
+# already installed and in your $PATH.
 
 # Overview of the collection and database creation process 
 
@@ -23,14 +23,14 @@ database files.
 ## Installation
 
 Download the latest version of the scrips from:
-http://opensource.iis.se/trac/dns2db/attachment/wiki/DownloadPage/DNS2dbscripts.tar
+http://opensource.iis.se/trac/dns2db/attachment/wiki/DownloadPage/DNS2db_scripts.tar
 
 To do pcap file rotation we use tcpdump-split.
 compile tcpdump-split.c with:
 cc -lpcap tcpdump-split.c -o tcpdump-split
 
 
-There are two files that need modification. 
+There are two files that need modification before running the scripts. 
 
 First the DNS2DB script which is for starting and stopping the whole
 process.
