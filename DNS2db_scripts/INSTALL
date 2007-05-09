@@ -1,4 +1,5 @@
 ### Installation instructions for DNS2db scripts ###
+(c) iis.se, 2007
 
 # These instructions assume that the dns2db binary is already installed
 # and in your $PATH.
