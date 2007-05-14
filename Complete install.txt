@@ -1,0 +1,173 @@
+DNS2DB complete installation document
+
+Table of contents
+
+1. Introduction
+2. Installing the dns2db binary
+3. Installing and configuring the DNS2db_scripts
+ 3.1 Overview of the collection and database creation process
+4. Installing and configuring the Flex GUI
+5. Optimizing and other considerations
+
+
+
+1. Introduction.
+
+This document describes how to install and configure the complete set of tools
+provided by .SE to collect DNS traffic and present statistics on traffic to
+and from a DNS server. The instructions are split into three parts where we
+begin with building and installing the dns2db binary. The dns2db program is
+written in C and does the conversion of pcap data to sql. The second part is
+for installing and configuring the DNS2db_scripts that is provided to collect
+pcap files of the interface, running dns2db, creating indexes on the database
+and moving the resulting files into a directory structure. And finaly we will
+set up the scripts and applications for the presenter.
+
+
+
+2. Installing the DNS2db binary
+
+Currently DBS2db is known to work on Linux, FreeBSD, OpenBSD (with some
+patches) and OSX. This document covers installation on Linux and FreeBSD.
+
+## Requirements
+Sqlite3 and ldns must be installed prior to building DNS2db
+ldns can be found at http://www.nlnetlabs.nl/ldns/
+
+## Build on Linux
+
+Download libDNSlog and dns2db from
+http://opensource.iis.se/trac/dns2db/wiki/DownloadPage
+
+libDNSlog:
+# To configure and build libDNSlog, run:
+./configure
+make archive
+make install
+
+# This will install libDNSlog in /usr/local/libDNSlog
+# and header files in /usr/local/include
+
+dns2db:
+# To configure and build dns2db, run:
+./configure
+make
+
+## Build om FreeBSD
+
+libDNSLog:
+# To configure and build libDNSlog, run:
+LDFLAGS="-L /usr/local/lib" CPPFLAGS="-I /usr/local/include" ./configure
+make archive
+make install
+
+# This will install libDNSlog in /usr/local/libDNSlog
+# and header files in /usr/local/include
+
+dns2db:
+# To configure and build dns2db, run:
+LDFLAGS="-L /usr/local/lib" CPPFLAGS="-I /usr/local/include" ./configure
+make
+
+## Install
+
+Copy the dns2db binary from the dns2db directory to your path.
+Run dns2db wihout options for to see the help 
+
+
+3. Installing and configuring the DNS2db_scripts
+
+# These instructions assume that the dns2db and tcpdump binaries is
+# already installed and in your $PATH.
+
+3.1 Overview of the collection and database creation process 
+
+The process is started by the DNS2DB script and does the following:
+
+First it mounts a 256MB ramdisk on /mnt/dns2db (for speeding up indexing 
+of the database) and then tcpdump is started on the interface and writes 
+data to a fifo. After this the tcpump-split binary reads from the fifo 
+and writes to disk at specified intervalls.
+At five minute intervalls dns2db reads the pcap file (if any) and creates 
+a database file on ramdisk.
+Sqlite3 is called to create indexes on the database file and at the same 
+time, the pcap file is gzipped.
+Finally the database file and the gzipped pcap file is moved to a 
+directory structure from where the webserver can serve queries to the 
+database files.
+
+Download the latest version of the scrips from:
+http://opensource.iis.se/trac/dns2db/attachment/wiki/DownloadPage/DNS2db_scripts.tar
+
+To do pcap file rotation we use tcpdump-split.
+cd DNS2db_scripts
+compile tcpdump-split.c with:
+cc -lpcap tcpdump-split.c -o tcpdump-split
+
+
+There are two files that need modification before running the scripts. 
+
+First the DNS2DB script which is for starting and stopping the whole
+process.
+If on FreeBSD, no modifications should be necessary but check ramdisk
+device and mountpoint.
+If on Linux or other, check how ramdisk is created and modify to reflect 
+your OS.
+
+Second the tcpdump-split.example
+Copy this file to tcpdump-split.sh and read the file.
+It is well documented in it self and should not need explaining here.
+
+
+## Starting and stopping the process
+
+Start with:
+./DNS2DB start tcpdump-split.sh
+
+Stop with:
+./DNS2DB stop
+
+
+4. Installing and configuring the Flex GUI
+
+The GUI is presented from a webserver using php with PDO_sqlite. It may 
+be on the same physical server running the dns2db application or on a 
+separate web server.
+
+The GUI is provided in a binary and source format. The binary is
+platform-independent and will run on any Flash player with version 9 or later.
+You will need to install PDO and PDO_sqlite php5 modules on your apache-server.
+You will need to add a crossdomain.xml
+http://www.adobe.com/cfusion/knowledgebase/index.cfm?id=tn_14213
+
+	Example crossdomain.xml:
+
+	<?xml version="1.0"?>
+	<!DOCTYPE cross-domain-policy SYSTEM "http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd">
+	<cross-domain-policy>
+	   <allow-access-from domain="*" secure="false" />
+	</cross-domain-policy>
+
+
+Download http://opensource.iis.se/trac/dns2db/attachment/wiki/DownloadPage/php_dns2db_xml_api.zip
+to the server hosting the database files. Look at trafficstat.api.php 
+and edit the path to your database files hierarchy. 
+
+Change the parameter "***SERVER***" in the Trafficanalysis2.html-file
+to the URL of your server hosting the php-script. (If you are not running
+https will need to change this as well)
+The trafficstat.api.php-script does not produce xml when called without
+parameters. If you would like to test the script without the GUI use this
+URL: (Replace the date & time):
+trafficstat.api.php?&day=20070507&time=0950&count=20&search=null&server=true
+
+You will need to add indexing to the db after the conversion, the queries
+will take forever otherwise:
+
+sqlite3 file.db "CREATE INDEX index_Client_Qname on Q (Client, Qname); CREATE INDEX index_E1 on Q (E1);"
+
+
+
+5. Optimizing and other considerations
+
+To be done
