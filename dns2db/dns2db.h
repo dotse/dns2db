@@ -1,5 +1,5 @@
 /*
-  $Id: dns2db.h,v 1.6 2007/05/05 16:41:19 calle Exp $
+  $Id: dns2db.h,v 1.8 2007/07/06 13:59:17 calle Exp $
   This file is used to give all global defintions..
   
 */
@@ -24,15 +24,28 @@
 
 typedef struct _dns_package dns_package;
 
+  typedef enum {IPV4=4,IPV6=6,}IP_VERSION;
+
+
 
 struct _dns_package
 {
   ldns_pkt *pkt;
   struct udphdr *udp_hdr;  
-  struct ip *ip_hdr;
+  
+  union IP_HDR{
+    struct ip *ip4;
+    struct ip6_hdr *ip6;
+  } ip_hdr;
+  
+  IP_VERSION IPV;
+  
   struct ether_header *e_hdr;
   struct pcap_pkthdr *pcap_hdr;
 };
+
+#define ipV4_hdr ip_hdr.ip4
+#define ipV6_hdr ip_hdr.ip6
 
 #endif
 

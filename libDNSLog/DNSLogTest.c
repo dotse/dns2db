@@ -7,14 +7,14 @@
 #include <string.h>
 #include "config.h"
 
-static dns_message m;
+
 
 
 char *insert_e(const dns_message *m,void *arg)
 {
   int qn_len = strlen(m->qname);
-  char *e1_col = malloc(qn_len);
-  
+  char *e1_col = malloc(qn_len+1);
+  bzero(e1_col,qn_len+1);
   strncpy(e1_col,m->qname,qn_len);
   
   return e1_col;
@@ -22,54 +22,76 @@ char *insert_e(const dns_message *m,void *arg)
   
   
 
-void make_m_q()
+dns_message *make_m_q()
 {
-  char *q_name = "www.sunet.se";
 
-  inet_aton("222.111.223.12",&(m.client_ipv4_addr));
+  dns_message *m=malloc(sizeof(dns_message));
+  char *q_name = strdup("www.sunet.se");
+  struct in_addr *client = malloc(sizeof(struct in_addr));
+  char *errorMsg;
+  
+  bzero(m->qname,MAX_QNAME_SZ);
+  
+  inet_pton(AF_INET,"222.111.223.12",client);
+  
+  DNSLog_set_client_addr((void *) m,&client->s_addr,AF_INET,&errorMsg);
 
-  m.src_port = 53;
-  m.qtype = 12;
-  m.qclass = 3;
-  m.msglen = 123;
+  m->src_port = 53;
+  m->qtype = 12;
+  m->qclass = 3;
+  m->msglen = 123;
 
-  strcpy(m.qname,q_name);
+  strcpy(m->qname,q_name);
   
   //m.tld = ".se";
-  m.opcode = 'U';
-  m.rcode = '0';
-  m.malformed = -1;
-  m.qr =0;
-  m.rd = 1;
-  m.edns.found = -1;
-  m.edns.DO = -1;
-  m.edns.version = '2';
+  m->opcode = 'U';
+  m->rcode = '0';
+  m->malformed = -1;
+  m->qr =0;
+  m->rd = 1;
+  m->edns.found = -1;
+  m->edns.DO = -1;
+  m->edns.version = '2';
+  return m;
 }
 
 
-void make_m_r()
+dns_message *make_m_r()
 {
-  char *q_name = "www.bogus.se";
-
-  inet_aton("111.111.123.12",&(m.client_ipv4_addr));
+  dns_message *m=malloc(sizeof(dns_message));  
   
-  m.ts.tv_sec=1234;
-  m.src_port = 53;
-  m.qtype = 12;
-  m.qclass = 3;
-  m.msglen = 123;
+  char *q_name = "www.bogus.se";  
+  struct in6_addr client;
+  char *errorMsg;
 
-  strcpy(m.qname,q_name);
+  
+  inet_pton(AF_INET6,"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",&client);
+  
+  DNSLog_set_client_addr((void *) m,client.s6_addr,AF_INET6,&errorMsg);
+
+
+
+
+  //  inet_aton("111.111.123.12",&(m.client_ipv4_addr));
+  
+  m->ts.tv_sec=1234;
+  m->src_port = 53;
+  m->qtype = 12;
+  m->qclass = 3;
+  m->msglen = 123;
+
+  strcpy(m->qname,q_name);
   
   //m.tld = ".se";
-  m.opcode = 'U';
-  m.rcode = '0';
-  m.malformed = -1;
-  m.qr =1;
-  m.rd = 1;
-  m.edns.found = -1;
-  m.edns.DO = -1;
-  m.edns.version = '2';
+  m->opcode = 'U';
+  m->rcode = '0';
+  m->malformed = -1;
+  m->qr =1;
+  m->rd = 1;
+  m->edns.found = -1;
+  m->edns.DO = -1;
+  m->edns.version = '2';
+  return m;
 }
 
 
@@ -79,7 +101,7 @@ int main(int args,char *argv[])
   char *errorMsg = NULL;
   char *file= "dnslog.db";
   int ret;
-
+  dns_message *msg;
   
   ret = DNSLog_open(&db,file,DNS_LOG_OVERWRITE,"TEST",&errorMsg);
   
@@ -114,13 +136,15 @@ int main(int args,char *argv[])
       exit(123);
     }
   
-  make_m_q();
+  msg=make_m_q();
   
-  DNSLog_insert_dns_message(db,&m,NULL,NULL,&errorMsg);
+  DNSLog_insert_dns_message(db,msg,NULL,NULL,&errorMsg);
+  //DNSLog_insert_dns_message(db,msg,NULL,NULL,&errorMsg);
+  DNSLog_destroy_msg(msg);
 
-  make_m_r();
-
-  DNSLog_insert_dns_message(db,&m,NULL,NULL,&errorMsg);
+  //msg=make_m_r();
+  
+  //DNSLog_insert_dns_message(db,msg,NULL,NULL,&errorMsg);
   DNSLog_close(db,&errorMsg);
   
   return 1;

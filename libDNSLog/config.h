@@ -75,13 +75,13 @@
 #define PACKAGE_NAME "libDNSLog"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "libDNSLog 0.2_BETA"
+#define PACKAGE_STRING "libDNSLog 0.5_BETA"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "libdnslog"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.2_BETA"
+#define PACKAGE_VERSION "0.5_BETA"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1

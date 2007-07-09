@@ -1,5 +1,5 @@
 /* 
-   $Id: dns2db.c,v 1.12 2007/05/08 11:25:21 calle Exp $
+   $Id: dns2db.c,v 1.14 2007/07/06 13:59:17 calle Exp $
 */
 #include "dns2db_config.h"
 #define _GNU_SOURCE
@@ -14,6 +14,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netinet/in_systm.h> /* iphdr and udphdr's*/
+#include <netinet/ip6.h>	/* ipv6 structures */
 #include <netinet/ip.h>
 #include <netinet/udp.h> 
 
@@ -117,6 +118,65 @@ bool handle_question(ldns_rr_list *rr_list,void *msg)
 }
 
 
+  
+
+
+/*
+  Setting the address part
+*/
+
+
+static void *is_src_address(void *msg,dns_package *pkg,DNSLOG_BOOL q,char **errorMsg)
+{
+  int af=AF_INET; 
+  struct in6_addr *in6 = NULL;
+  struct in_addr *in4 = NULL;
+
+
+
+
+  if(pkg->IPV == IPV4) 		/* Its ipv4 */
+    {
+      if(q == TRUE) 		/* We need the source */
+	{
+	  in4 = &pkg->ip_hdr.ip4->ip_dst;
+	}
+      else
+	{
+	  in4 = &pkg->ip_hdr.ip4->ip_src;
+	}
+      if(DNSLog_set_client_addr(msg,&in4->s_addr,AF_INET,errorMsg) != DNS_LOG_OK)
+      {
+	fprintf(stderr,"Error: %s \n",errorMsg);
+	exit(EXIT_FAILURE);
+      }
+      
+    }
+  else
+    {
+      if( q == TRUE)
+	{
+	  	  
+	  in6 = &pkg->ip_hdr.ip6->ip6_dst;
+	  
+	}
+      else
+	{
+	  //test = pkg->ip_hdr.ip6;
+	  in6 = &pkg->ip_hdr.ip6->ip6_src;
+	}
+      if(DNSLog_set_client_addr(msg,&in6->s6_addr,AF_INET6,errorMsg) != DNS_LOG_OK)
+      {
+	fprintf(stderr,"Error: %s \n",errorMsg);
+	exit(EXIT_FAILURE);
+      }
+	
+    }
+
+  
+  return msg;
+}
+
 
 /* 
    Create a msg to be inserted into
@@ -127,11 +187,10 @@ void *create_msg(dns_package *pkg)
 {
   char *errorMsg;
   void *msg = NULL;
-  struct ip *client_ip_struct = pkg->ip_hdr;
-  struct in_addr client_ip_addr;
+  struct ip *client_ip_struct = pkg->ipV4_hdr;
+
   uint16_t port;
   ldns_rr_list *ldns_rr=NULL;
-  
     
   
   if(DNSLog_create_msg(&msg,&errorMsg) != DNS_LOG_OK)
@@ -187,7 +246,8 @@ void *create_msg(dns_package *pkg)
 	  fprintf(stderr,"Error: %s\n",errorMsg);
 	}
       port = htons(pkg->udp_hdr->dest);
-      client_ip_addr = client_ip_struct->ip_dst;
+      msg=is_src_address(msg,pkg,TRUE,&errorMsg);
+      //      client_ip_addr = client_ip_struct->ip_dst;
 
 	
     }		    
@@ -197,13 +257,16 @@ void *create_msg(dns_package *pkg)
 	Packet is a Answere!	
       */
       
+      
+      
       if(DNSLog_set_isQuery(msg,FALSE,&errorMsg) != DNS_LOG_OK)
 	{
 	  fprintf(stderr,"Error: %s\n",errorMsg);
 	}
       
       port = htons(pkg->udp_hdr->source);
-      client_ip_addr = client_ip_struct->ip_src;
+      msg=is_src_address(msg,pkg,FALSE,&errorMsg);
+      
 
       
     }		        
@@ -216,13 +279,16 @@ void *create_msg(dns_package *pkg)
   ldns_rr = ldns_pkt_question (pkg->pkt);
   handle_question(ldns_rr,msg);
   
-  		    
-		    
-  if(DNSLog_set_addr(msg,client_ip_addr.s_addr,&errorMsg) != DNS_LOG_OK)
-    {
-      fprintf(stderr,"Error: %s \n",errorMsg);
-      exit(EXIT_FAILURE);
-    }
+
+  
+
+  
+			 
+/*   if(DNSLog_set_addr(msg,client_ip_addr.s_addr,&errorMsg) != DNS_LOG_OK) */
+/*     { */
+/*       fprintf(stderr,"Error: %s \n",errorMsg); */
+/*       exit(EXIT_FAILURE); */
+/*     } */
   
   /* 
      insert port to the message,,
@@ -622,7 +688,7 @@ int main(int argc, char *argv[])
       fprintf(stderr,"Error: could not close db %s\n",errorMsg);
       exit(EXIT_FAILURE);
     }
-  
+  e_filter_free();		/* Free the filter regexp... */
   
   return 1;
 }

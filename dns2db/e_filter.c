@@ -1,5 +1,5 @@
 /*
-  $Id: e_filter.c,v 1.5 2007/05/07 07:14:51 calle Exp $
+  $Id: e_filter.c,v 1.6 2007/07/06 13:59:17 calle Exp $
 
   Description:
   The purpose of this file, is to be able
@@ -68,6 +68,7 @@ char *e1_filter(const dns_message *m,void *arg)
       
       
       size = strlen(&theQname[pmatch[0].rm_so])+1;
+
       ret = malloc(size*sizeof(char));
       
       strncpy(ret,&theQname[pmatch[0].rm_so],size);
@@ -87,8 +88,24 @@ char *e1_filter(const dns_message *m,void *arg)
 char *e2_filter(const dns_message *m,void *arg)
 {
   char *ret=NULL;
-  char *theQname = inet_ntoa(m->client_ipv4_addr);
+  char *theQname;
   int size =0;
+
+  if(m->inet_af == AF_INET)
+    {
+      theQname = malloc(INET_ADDRSTRLEN);
+      inet_ntop(AF_INET,&m->ipv4,theQname,INET_ADDRSTRLEN);
+    }
+  else if(m->inet_af == AF_INET6)    
+    {
+      theQname = malloc(INET6_ADDRSTRLEN);
+      inet_ntop(AF_INET6,&m->ipv6,theQname,INET6_ADDRSTRLEN);
+    }
+  else
+    {
+      return NULL;
+    }
+	
 
 
 
@@ -125,31 +142,41 @@ char *e2_filter(const dns_message *m,void *arg)
   
 char *NET_filter(const dns_message *m,void *arg)
 {
-
+  int cnt;
   struct in_addr mask;
   struct in_addr masked_addr;
-  char *buf = NULL;
-  char *temp=NULL;
-
+  struct in6_addr masked6_addr;
+  char *buf=NULL;
   
-  inet_aton("255.255.255.0",&mask);
 
-  masked_addr.s_addr = m->client_ipv4_addr.s_addr & mask.s_addr;
-  temp = inet_ntoa(masked_addr);
-  
-  if(temp != NULL)
+  if(m->inet_af == AF_INET)	/* ipv4 mask... */
     {
-
-      buf = strndup(temp,strlen(temp));
-      //size = strlen(temp)+1;
-      //buf = malloc( size * sizeof(char));
-      
-      //strncpy(buf,temp,size);
+      inet_pton(AF_INET,"255.255.255.0",&mask);	/* Get a masked network in byte order */
+      masked_addr.s_addr = m->ipv4.s_addr & mask.s_addr; /* and the address with the mask */
+      buf = malloc(INET_ADDRSTRLEN); /* New string */
+      inet_ntop(AF_INET,&masked_addr,buf,INET_ADDRSTRLEN); /* get the ascii representation */
     }
+  if(m->inet_af == AF_INET6)
+    {
+      /* Use the first 64 bits(network), and skip the HW address 
+	 First we set the masked6_addr to 0x00 for all bits
+	 Then we copy the first 64 bits of m->ipv6.....
+	 and then inet_ntop...
+      */
+      //bzero(&masked6_addr.S6_addr,16); /* 16 bytes = 128 bits */
+      bzero(&masked6_addr.s6_addr,16); /* 16 bytes = 128 bits */
+      memcpy(&masked6_addr.s6_addr,m->ipv6.s6_addr,8); /* Copy the first 8 bytes */
+      
+      
+      buf=malloc(INET6_ADDRSTRLEN);      
+      inet_ntop(AF_INET6,&masked6_addr,buf,INET6_ADDRSTRLEN);
+    }
+	
   
 
   return buf;
 }
+      
 
 
 

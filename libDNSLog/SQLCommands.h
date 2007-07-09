@@ -1,5 +1,5 @@
 /*
-  $Id: SQLCommands.h,v 1.2 2007/04/12 09:11:03 calle Exp $
+  $Id: SQLCommands.h,v 1.4 2007/07/03 16:28:50 calle Exp $
 
   Copyright(c) 2007 by Carl Olsen
   
@@ -14,12 +14,15 @@
 #define SQL_COMMAND_CREATE_Q_TABLE "create table %s(id INTEGER PRIMARY KEY AUTOINCREMENT,ts INTEGER,msg_id INTEGER,Client_num INTEGER,Client TEXT,Src_port INTEGER,Qtype INTEGER,Qclass INTEGER,MsgLen INTEGER,Qname TEXT,Opcode INTEGER,Rd INTEGER,Opt_RR INTEGER,Do INTEGER,Version TEXT,E1 TEXT,E2 TEXT);"
 
 
+
 #define SQL_COMMAND_CREATE_R_TABLE "create table %s(id INTEGER PRIMARY KEY AUTOINCREMENT,ts INTEGER,msg_id INTEGER,Client_num INTEGER,Client TEXT,Src_port INTEGER,Qtype INTEGER,Qclass INTEGER,MsgLen INTEGER,Qname TEXT,Opcode INTEGER,Rcode INTEGER,Rd INTEGER,Opt_RR INTEGER,Do INTEGER,Version TEXT,E1 TEXT,E2 TEXT);"
 
-#define SQL_COMMAND_QUERY_INSERT "insert into %s(ts,msg_id,Client_num,Client,Src_port,Qtype,Qclass,MsgLen,Qname,Opcode,Rd,Opt_RR,Do,Version,E1,E2) VALUES ( %d,%d,%d,\"%s\",%d,%d,%d,%d,\"%s\",%d,%d,%d,%d,%d,\"%s\",\"%s\");"
 
-#define SQL_COMMAND_REPLY_INSERT "insert into %s(ts,msg_id,Client_num,Client,Src_port,Qtype,Qclass,MsgLen,Qname,Opcode,Rcode,Rd,Opt_RR,Do,Version,E1,E2) VALUES ( %d,%d,%d,\"%s\",%d,%d,%d,%d,\"%s\",%d,%d,%d,%d,%d,%d,\"%s\",\"%s\");"
 
+#define SQL_COMMAND_R_INSERT "insert into %s(ts,msg_id,Client_num,Client,Src_port,Qtype,Qclass,MsgLen,Qname,Opcode,Rcode,Rd,Opt_RR,Do,Version,E1,E2) VALUES ( ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);"
+
+
+#define SQL_COMMAND_Q_INSERT "insert into %s(ts,msg_id,Client_num,Client,Src_port,Qtype,Qclass,MsgLen,Qname,Opcode,Rd,Opt_RR,Do,Version,E1,E2) VALUES ( ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);"
 
 
 

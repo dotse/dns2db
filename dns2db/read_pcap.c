@@ -1,5 +1,5 @@
 /*
-  $Id: read_pcap.c,v 1.8 2007/05/05 16:41:19 calle Exp $
+  $Id: read_pcap.c,v 1.10 2007/07/06 13:59:17 calle Exp $
 
 */
 #include "dns2db_config.h"
@@ -16,7 +16,7 @@
 			   e.h IPPROTO_UDP definition
 			*/
 #include <sys/socket.h>
-#include <netinet/ip6.h>
+#include <netinet/ip6.h>	/* Provides ip6 structures */
 #include <net/if_arp.h>
 #include <net/if.h>
 #include <netinet/if_ether.h>
@@ -129,13 +129,83 @@ int handle_udp(dns_package *m,const struct udphdr *udp, int len)
   ======================
   Handle ipv6 packet!
   ======================
-*/
-#ifdef ETHERTYPE_IPV6
-dns_package *
-handle_ipv6(const struct ip6_hdr * ip6, int len)
-{
   
-  return NULL;
+
+  
+    We need to extract the ipv6 address structure
+    which is which is defined in rfc2292 (see also 2553)...
+    The dns_package needs to have a union which can
+    either fit that structure or the ipv4 structure..
+    
+  
+
+*/
+
+static void test_ipv6_hdr(struct ip6_hdr *ip6)
+{
+
+  struct in6_addr *src =(struct in6_addr *) ip6->ip6_src.s6_addr;
+    //ip6->ip6_src;
+  char buf[INET6_ADDRSTRLEN];
+  
+  bzero(buf,INET6_ADDRSTRLEN);
+  
+  inet_ntop(AF_INET6,src,buf,INET6_ADDRSTRLEN+1);
+
+  printf("%s \n",buf);
+  
+}
+    
+    
+  
+
+
+
+#ifdef ETHERTYPE_IPV6
+int
+handle_ipv6(dns_package *pkg,const struct ip6_hdr * ip6, int len)
+{
+  int rc;
+  int nxt_proto_hdr = ip6->ip6_nxt;
+  int offset = sizeof(*ip6);
+  struct ip6_hdr *ip_hdr = malloc(offset);
+  char buf[len]; 		/* Should probably use uint_8 instead of char */
+  bzero(buf,len);
+
+  
+  ip_hdr =memcpy(ip_hdr,ip6,sizeof(struct ip6_hdr));
+
+  
+  pkg->ipV6_hdr = ip_hdr;
+  
+/*   test_ipv6_hdr(ip_hdr);	 */
+
+  /* Well Actually, if the next header is something other
+   than UDP we just send back some error of unknown proto..
+   
+  */
+
+  /* if(IPPROTO_UDP != nxt_proto_hdr) */
+  /*     return READ_PCAP_IP_UNKOWN_PROTO; */
+  /*   if(IPPROTO_FRAGMENT != nxt_proto_hdr) */
+  /*     return READ_PCAP_IP_FRAGMENT; */
+  
+  if(IPPROTO_UDP == nxt_proto_hdr)
+    {
+      /* Copy the rest of the content of the packet to buf */
+      memcpy(buf, (void *) ip6 + offset, len - offset);
+      
+      /* Call handle udp with the buffer and remove the header length from the length */
+      pkg->IPV = IPV6;
+      rc = handle_udp(pkg,(struct udphdr *)buf,len-offset);
+      return rc;
+    }
+  
+  
+  
+  printf("IPV6 message found \n");
+
+  return READ_PCAP_IP_UNKOWN_PROTO;
 }
 #endif
 
@@ -161,9 +231,12 @@ int handle_ipv4(dns_package *m,const struct ip * ip, int len)
      later use.
   */
   i_hdr =memcpy(i_hdr,ip,sizeof(struct ip));
-  m->ip_hdr = i_hdr;
+  m->ipV4_hdr = i_hdr;
 
   int offset = ip->ip_hl << 2;
+
+
+
     /*
       NOT IMPLEMTED!!
       ip_message_callback(ip);
@@ -183,7 +256,7 @@ int handle_ipv4(dns_package *m,const struct ip * ip, int len)
   memcpy(buf, (void *) ip + offset, len - offset);
   
   
-  
+  m->IPV = IPV4;
   return handle_udp(m,(struct udphdr *) buf, len - offset);
 
 }
@@ -232,14 +305,12 @@ handle_ether(dns_package *m,const u_char *pkt, int len)
 
   }
 
-/*
-#ifdef ETHERTYPE_IPV6
+
   if (ETHERTYPE_IPV6 == etype) {
     memcpy(buf, pkt, len);
-    return handle_ipv6((struct ip6_hdr *) buf, len);
+    return handle_ipv6(m,(struct ip6_hdr *) buf, len);
   }
-#endif
-*/
+
   
 return READ_PCAP_UNKOWN_ETHER_TYPE;
 }
@@ -511,10 +582,10 @@ void free_dns(dns_package *m)
       free(m->e_hdr);
       m->e_hdr = NULL;
     }
-  if(m->ip_hdr != NULL)
+  if(m->ip_hdr.ip4 != NULL)
     {
-      free(m->ip_hdr);
-      m->ip_hdr = NULL;
+      free(m->ip_hdr.ip4);
+      m->ip_hdr.ip4 = NULL;
     }
   if(m->udp_hdr != NULL)
     {
@@ -536,7 +607,8 @@ static void init_dns_packet(dns_package *pkg)
   
   pkg->pkt = NULL;
   pkg->udp_hdr= NULL;
-  pkg->ip_hdr = NULL;
+  pkg->ip_hdr.ip4 = NULL;
+  pkg->ip_hdr.ip6 = NULL;
   pkg->e_hdr =NULL;
   pkg->pcap_hdr = NULL;
 }

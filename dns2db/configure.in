@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(dns2db, 0.2_BETA, calle@autonomica.se)
+AC_INIT(dns2db, 0.5_BETA, calle@autonomica.se)
 AC_CONFIG_SRCDIR([dns2db.h])
 #AC_CONFIG_HEADER([config.h])
 

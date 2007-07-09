@@ -1,5 +1,5 @@
 /* 
-   $Id: create_db_msg.c,v 1.4 2007/05/05 16:39:01 calle Exp $
+   $Id: create_db_msg.c,v 1.6 2007/07/06 13:59:42 calle Exp $
    
    
 */
@@ -12,13 +12,12 @@
 #include <inttypes.h>
 #include <string.h>
 
-
 static void initialize_message(dns_message *msg)
 {
   msg->ts.tv_sec = 0;
   msg->ts.tv_usec = 0;
   
-  msg->client_ipv4_addr.s_addr = 0;
+  //msg->client_ipv4_addr.s_addr = 0;
   msg->msg_id = 0;
   msg->src_port = 0;
   msg->qtype = 0;
@@ -152,8 +151,9 @@ int DNSLog_set_addr(void *obj,uint32_t addr,char **errorMsg)
   if(msg != NULL)
     {
       
-      memcpy(&msg->client_ipv4_addr,(void *) &addr,sizeof(struct in_addr));
+      memcpy(&msg->ipv4,(void *) &addr,sizeof(struct in_addr));
       ret = DNS_LOG_OK;
+      msg->inet_af = AF_INET;
     }
   else
     {
@@ -166,23 +166,65 @@ int DNSLog_set_addr(void *obj,uint32_t addr,char **errorMsg)
   return ret;
 }
 
+/* 
+   DNSLog_set_client_addr is a v2 of DNSLog_set_addr
+   with support of ipv6
+   the address should be the raw 
+ */
+int DNSLog_set_client_addr(void *obj,const void *addr,int af,char **errorMsg)
+{
+  int ret = DNS_LOG_INTERNAL_ERROR;
+
+  
+
+  dns_message *msg = (dns_message *) obj;
+
+  /* Check that obj is not null */
+  if(obj != NULL)
+    {
+  
+      /* IF AF_INET then ipv4 */
+      if(af == AF_INET)
+	{
+	  
+	  memcpy(&msg->ipv4.s_addr,addr,4);	/* Copy 4 bytes (32-bits) */
+	  msg->inet_af = af;
+	  ret = DNS_LOG_OK;
+	}
+      /* IPv6 */
+      else if(af == AF_INET6)
+	{
+	  memcpy(msg->ipv6.s6_addr,addr,16); /* Copy 16 bytes (128-bits) */
+	  msg->inet_af = af;
+	  ret = DNS_LOG_OK;
+	}
+      else
+	{
+	  ret =DNS_LOG_MSG_WRONG_AF;
+	  *errorMsg = strndup(DNS_LOG_MSG_WRONG_AF_STR,strlen(DNS_LOG_MSG_WRONG_AF_STR));
+	}
+    }
+      
+  return ret;
+      
+}
 
 /*
   DNSLog_get_addr
   returns a struct in_addr from the object
 */
 
-struct in_addr *DNSLog_get_addr(void *obj)
-{
-  struct in_addr *ret_addr=NULL;
-  dns_message *msg = (dns_message *) obj;
+/* struct in_addr *DNSLog_get_addr(void *obj) */
+/* { */
+/*   struct in_addr *ret_addr=NULL; */
+/*   dns_message *msg = (dns_message *) obj; */
   
-  if(msg != NULL)
-    {
-      ret_addr = &msg->client_ipv4_addr;
-    }
-  return ret_addr;
-}
+/*   if(msg != NULL) */
+/*     { */
+/*       ret_addr = &msg->ipv4; */
+/*     } */
+/*   return ret_addr; */
+/* } */
 
 
 /*
@@ -428,14 +470,38 @@ uint16_t DNSLog_get_msglen(void *obj,char **errorMsg)
   
 */
 
+static void convert_to_lower(char *toConvert)
+{
+  int len = strlen(toConvert);
+  int i;
+
+  for(i=0;i < len; i++)
+    {
+      
+      /*
+	Its a alphabetic letter
+      */
+      if(isalpha(toConvert[i]) == 1)
+	{
+	  toConvert[i] = tolower(toConvert[i]);
+	}
+    }
+}
+
+
+
 int DNSLog_set_qname(void *obj, const char *query_name, char **errorMsg)
 {
   int ret = DNS_LOG_INTERNAL_ERROR;
   dns_message *msg = (dns_message *) obj;
   
+  
+  
   if(msg != NULL)
     {
+      
       memcpy(msg->qname,query_name,strlen(query_name)+1);
+      convert_to_lower(msg->qname);
       ret = DNS_LOG_OK;
     }
   else

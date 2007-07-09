@@ -74,4 +74,9 @@ int read_pcap_Set_QRA(void *,pkg_capture ,char **);
 #define C_CHAOS 3
 #endif
 
+#ifndef ETHERTYPE_IPV6
+#define ETHERTYPE_IPV6		0x86dd
+#endif
+
+
 #endif

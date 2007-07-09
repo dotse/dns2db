@@ -2,7 +2,7 @@ PROG=dns2db
 CC=gcc
 LIB=-lldns -lDNSLog -lsqlite3 -lpcap 
 LDFLAGS= 
-LIBOBJS= lstat$U.o
+LIBOBJS=
 CFLAGS= -g -O2  -DHAVE_CONFIG_H
 
 

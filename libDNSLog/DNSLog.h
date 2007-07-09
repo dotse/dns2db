@@ -1,5 +1,5 @@
 /*
-  $Id: DNSLog.h,v 1.7 2007/05/05 16:39:01 calle Exp $
+  $Id: DNSLog.h,v 1.9 2007/07/06 13:59:42 calle Exp $
 
   Copyright(c) 2007 by Carl Olsen
   
@@ -86,6 +86,31 @@ typedef char *(E2_fun)(const dns_message *, void *);
 
 #define DNS_LOG_CP_RAM2DISK_ERROR 7
 
+#define DNS_LOG_MSG_FAILED_PREPARE 8 
+#define DNS_LOG_MSG_FAILED_PREPARE_STR "DNSLog failed to prepare statement"
+
+#define DNS_LOG_MSG_FAILED_BIND_TEXT 9
+#define DNS_LOG_MSG_FAILED_BIND_TEXT_STR "Unable to bind text to sqlite statement"
+
+#define DNS_LOG_MSG_FAILED_BIND_INT 10
+#define DNS_LOG_MSG_FAILED_BIND_INT_STR "Unable to bind integer to sqlite statement"
+
+#define DNS_LOG_MSG_CLEAR_BINDS 11
+#define DNS_LOG_MSG_CLEAR_BINDS_STR "Unable to clear bindings"
+
+#define DNS_LOG_MSG_SQL_EXEC 12
+#define DNS_LOG_MSG_SQL_EXEC_STR "Unable to execute sqlite3_step"
+
+#define DNS_LOG_MSG_SQL_FINALIZE 13
+#define DNS_LOG_MSG_SQL_FINALIZE_STR "Unable to finalize sqlite3_stmt"
+
+#define DNS_LOG_MSG_SQL_RESET 14
+#define DNS_LOG_MSG_SQL_RESET_STR "Unable to reset sqlite3_stmt"
+
+#define DNS_LOG_MSG_WRONG_AF 15
+#define DNS_LOG_MSG_WRONG_AF_STR "Unknown AF"
+
+
 
 #define DNS_LOG_DB_ERROR 666
 #define DNS_LOG_INTERNAL_ERROR 999
@@ -118,7 +143,10 @@ struct timeval *DNSLog_get_timeval(void *obj);
 
 
 int DNSLog_set_addr(void *obj,uint32_t addr,char **errorMsg);
-struct in_addr *DNSLog_get_addr(void *obj);
+//struct in_addr *DNSLog_get_addr(void *obj);
+
+
+int DNSLog_set_client_addr(void *obj,const void *addr,int af,char **errorMsg);
 
 int DNSLog_set_msgID(void *obj,uint16_t id,char **errorMsg);
 uint16_t DNSLog_get_msgID(void *obj,char **errorMsg);

@@ -1,5 +1,5 @@
 /*
-  $Id: DNSLog.c,v 1.3 2007/04/24 15:42:28 calle Exp $
+  $Id: DNSLog.c,v 1.5 2007/07/06 13:59:42 calle Exp $
 
   Copyright(c) 2007 by Carl Olsen
   
@@ -60,26 +60,16 @@ typedef struct {
     char *query;
     char *reply;
   }table_name;
+
+  struct{
+    sqlite3_stmt *q_stmt;  //Prepared statements
+    sqlite3_stmt *r_stmt;
+  }pre_stmt;
+  
 } DNSLog_struct;
 
 
 
-static void free_DNSLog_struct(DNSLog_struct *toFree)
-{
-  
-  if(toFree->temp_file != NULL)
-    {
-      free(toFree->temp_file);
-    }
-  if(toFree->perm_file != NULL)
-    {
-      free(toFree->perm_file);
-    }
-
-  free(toFree->table_name.query);
-  free(toFree->table_name.reply);
-  free(toFree);
-}
 
 /*
   create_sql_command 
@@ -132,29 +122,223 @@ int query_or_reply(void *not_used,dns_message *d_msg)
   return ret;
 }
 
-
-static char *get_ipv4_addr(const dns_message *msg)
+static char *get_ip_addr_str(const dns_message *msg)
 {
-  char *ipv4_ascii = NULL;
-  int size =0;
-    /*
-    The string is returned in a statically allocated buffer,  which  subse‐
-    quent calls will overwrite. (inet_ntoa)
-    This means we need to copy the result to another string,
-    so the filter does not change it..
-  */
-  char *temp_addr = inet_ntoa(msg->client_ipv4_addr);
-  if(temp_addr != NULL)
+  char *ip_addr;
+
+  if(msg->inet_af == AF_INET)
     {
-      size = strlen(temp_addr)+1;
-      ipv4_ascii = malloc(size*sizeof(char));
-      
-      strncpy(ipv4_ascii,temp_addr,size);
-      
+      /* Ipv4 address */
+      ip_addr = malloc(INET_ADDRSTRLEN);
+      inet_ntop(msg->inet_af,(void *) &msg->ipv4,ip_addr,INET_ADDRSTRLEN);
+
+    }
+  /* Ipv6 address */
+  if(msg->inet_af == AF_INET6)
+    {
+      ip_addr = NULL;
+      ip_addr = malloc(INET6_ADDRSTRLEN);
+      inet_ntop(msg->inet_af,(void *) &msg->ipv6,ip_addr,INET6_ADDRSTRLEN);
     }
   
-  return ipv4_ascii;
+  return ip_addr;
 }
+  
+
+
+
+
+/*
+  
+  First prepare a statement..
+  
+  Reset the statement..
+
+  Clear the bindings.
+  
+  Bind it to a (new) value...There are either text or int..
+
+  Step through.
+
+  and finally finalize the whole thing..
+  
+*/
+
+
+static int prepare_sql_stmt(sqlite3 *db,sqlite3_stmt **stmt,const char *sql_command,char **errorMsg)
+{
+  int rc = DNS_LOG_MSG_FAILED_PREPARE;
+  int rv;
+  
+
+  
+  //char *zErrorMsg=0;  Not using ...
+  //  int i_size_char = sizeof(char);
+  rv=sqlite3_prepare_v2(db,sql_command,strlen(sql_command),stmt,0);
+  
+  if(rv != SQLITE_OK)
+    {
+      *errorMsg = strndup(DNS_LOG_MSG_FAILED_PREPARE_STR,strlen(DNS_LOG_MSG_FAILED_PREPARE_STR));
+    }
+  else
+    {
+      rc = DNS_LOG_OK;
+    }
+  
+  return rc;
+  
+  
+}
+
+//First index is always 1
+
+static int bind_sql_stmt_text(sqlite3_stmt *stmt,int index,char *sql_val,char **errorMsg)
+{  
+  int rc = DNS_LOG_MSG_FAILED_BIND_TEXT;
+  int rv;
+
+
+
+  //I will use -1 to terminate on \0.though this should probably be changed...
+  if( (rc=sqlite3_bind_text(stmt,index,sql_val,-1,free)) == SQLITE_OK)
+    {
+      rc = DNS_LOG_OK;
+    }
+  else
+    {
+      fprintf(stderr,"Unable to bind %d\n",rc);
+      *errorMsg = strndup(DNS_LOG_MSG_FAILED_BIND_TEXT_STR,strlen(DNS_LOG_MSG_FAILED_BIND_TEXT_STR));
+    }
+  
+  return rc;
+}
+
+/*
+  Bind integers.
+*/
+static int bind_sql_stmt_int(sqlite3_stmt *stmt,int index,int num,char **errorMsg)
+{
+  int rc = DNS_LOG_MSG_FAILED_BIND_INT;
+  int rv;
+
+
+  //I will use -1 to terminate on \0.though this should probably be changed...
+  if( (rv=sqlite3_bind_int(stmt,index,num)) == SQLITE_OK)
+    {
+      rc = DNS_LOG_OK;
+    }
+  else
+    {
+      *errorMsg = strndup(DNS_LOG_MSG_FAILED_BIND_INT_STR,strlen(DNS_LOG_MSG_FAILED_BIND_INT_STR));
+    }
+  
+  return rc;
+}
+
+
+/*
+  sqlite3_step..
+*/
+
+static int exec_sql_stmt(sqlite3_stmt *stmt,char **errorMsg)
+{
+  int rc = DNS_LOG_MSG_SQL_EXEC;
+  int rv = 0;
+
+
+  
+  if((rv=sqlite3_step(stmt)) == SQLITE_DONE)
+    {
+      rc = DNS_LOG_OK;
+    }
+  else
+    {
+      
+      fprintf(stderr,"sqlite3_step: %d\n",rv);
+      *errorMsg = strndup(DNS_LOG_MSG_SQL_EXEC_STR,strlen(DNS_LOG_MSG_SQL_EXEC_STR));
+    }
+  
+  return rc;
+}
+
+
+/*
+  Finalize a statment
+  
+*/
+static int finalize_sql_stmt(sqlite3_stmt *stmt,char **errorMsg)
+{
+  int rc = DNS_LOG_MSG_SQL_FINALIZE;
+  int rv;
+  
+
+  if((rv=sqlite3_finalize( stmt)) == SQLITE_OK)
+    {
+      rc = DNS_LOG_OK;
+    }
+  else
+    {
+      rc = DNS_LOG_MSG_SQL_FINALIZE;
+      fprintf(stderr,"sqlite3_finalize: %d\n",rv);
+      *errorMsg = strndup(DNS_LOG_MSG_SQL_FINALIZE_STR,strlen(DNS_LOG_MSG_SQL_FINALIZE_STR));
+    }
+  
+  return rc;
+}
+     
+/*
+  Clear bindings
+  Set all parameters in the compiled SQL statement back to NULL...
+*/
+
+static int clear_bindings_sql_stmt(sqlite3_stmt *stmt,char **errorMsg)
+{
+  int rc = DNS_LOG_MSG_CLEAR_BINDS;
+  int rv;
+  
+  
+  if((rv = sqlite3_clear_bindings(stmt)) == SQLITE_OK)
+    {
+      rc = DNS_LOG_OK;
+    }
+  else
+    {
+      fprintf(stderr,"sqlite3_clear_bindings: %d\n",rv);
+      *errorMsg = strndup(DNS_LOG_MSG_CLEAR_BINDS_STR,strlen(DNS_LOG_MSG_CLEAR_BINDS_STR));
+    }
+  
+  return rc;
+}
+
+/*
+  Reset the sqlite3_stmt
+  resets a prepared sql statement back to its initial state, ready to be 
+  re-executed. Any SQL statement variables that had values boud 
+  to them using the sqlite3_bind_* API retains their values.
+*/
+
+static int reset_sql_stmt(sqlite3_stmt *stmt, char **errorMsg)
+{
+
+  int rc = DNS_LOG_MSG_SQL_RESET;
+  int rv;
+  
+  if((rv = sqlite3_reset(stmt)) == SQLITE_OK)
+    {
+      rc = DNS_LOG_OK;
+    }
+  else
+    {
+      fprintf(stderr,"sqlite3_reset: %d\n",rv);
+      *errorMsg = strndup(DNS_LOG_MSG_SQL_RESET_STR,strlen(DNS_LOG_MSG_SQL_RESET_STR));
+    }
+  
+  return rc;
+}
+	      
+  
+      
+
 
 //--------------------
 /*
@@ -163,146 +347,506 @@ static char *get_ipv4_addr(const dns_message *msg)
   to make smaller...but not now..
 */
 
-static int insert_msg_query(DNSLog_struct *db,dns_message *msg,void *funArg,char **errorMsg)
+static int prepare_q_stmt(DNSLog_struct *db_s,char **errorMsg)
+{
+  char sql_cmd[SQL_CMD_SZ];
+  int rc;
+  sqlite3_stmt *stmt;
+  
+  bzero(sql_cmd,SQL_CMD_SZ*sizeof(char));
+  
+  snprintf(sql_cmd,SQL_CMD_SZ,
+	   SQL_COMMAND_Q_INSERT,
+	   db_s->table_name.query);
+  
+  rc = prepare_sql_stmt(db_s->db,&stmt,sql_cmd,errorMsg);
+
+  if(rc == DNS_LOG_OK)
+    db_s->pre_stmt.q_stmt = stmt; // And finally add it to the DNSLog_strcture...
+  
+  
+
+  return rc;
+}
+
+ 
+/*
+  prepare Reply statment
+*/
+
+static int prepare_r_stmt(DNSLog_struct *db_s,char **errorMsg)
+{
+  char sql_cmd[SQL_CMD_SZ];
+  int rc;
+  sqlite3_stmt *stmt;
+  
+  bzero(sql_cmd,SQL_CMD_SZ*sizeof(char));
+  
+  snprintf(sql_cmd,SQL_CMD_SZ,
+	   SQL_COMMAND_R_INSERT,
+	   db_s->table_name.reply);
+  
+  rc = prepare_sql_stmt(db_s->db,&stmt,sql_cmd,errorMsg);
+
+  if(rc == DNS_LOG_OK)
+    db_s->pre_stmt.r_stmt = stmt;
+  
+  
+
+  return rc;
+}
+     
+
+
+static int insert_q_msg(DNSLog_struct *db,dns_message *msg,void *funArg,char **errorMsg)
 {
   int ret =DNS_LOG_INTERNAL_ERROR;
   char *e1=NULL;
   char *e2=NULL;
-  char *ipv4_ascii = get_ipv4_addr(msg);
-  char sql_cmd[SQL_CMD_SZ]; // only temp...
+  char *ipv4_ascii = get_ip_addr_str(msg);
+  int ip_addr_raw = 0;
+  
+  int rc = 0;
 
-  
-  
-  
-    
 
   
   if(db->fun_e1 != NULL )
     {
       e1 = db->fun_e1(msg,funArg);
     }
-
+    
   
   if(db->fun_e2 != NULL )
     {
       e2 = db->fun_e2(msg,funArg);
     }
   
-  
-  snprintf(sql_cmd,SQL_CMD_SZ,SQL_COMMAND_QUERY_INSERT,
-	   db->table_name.query,
-	   (int)msg->ts.tv_sec, 
-	   msg->msg_id,
-	   msg->client_ipv4_addr.s_addr,
-	   ipv4_ascii,
-	   msg->src_port,
-	   msg->qtype,
-	   msg->qclass,
-	   msg->msglen,
-	   msg->qname,
-	   msg->opcode,
-	   msg->rd,
-	   msg->edns.found,
-	   msg->edns.DO,
-	   msg->edns.version,
-	   e1,
-	   e2);
-  
-  
-  
-  
-  /*
-    So we finally made it to this point time to insert the message into the database..
+  //setting the right name of the table.
+      
+      //So we inserted a time
+  rc = bind_sql_stmt_int(db->pre_stmt.q_stmt,                //Statement
+			     1,                   //Index
+			     (int)msg->ts.tv_sec, //Number
+			     errorMsg);          //ErrorMessage
+      
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+      
+      rc = bind_sql_stmt_int(db->pre_stmt.q_stmt,                //Statement
+			     2,                   //Index 2
+			     msg->msg_id,        // Message ID
+			     errorMsg);          //ErrorMessage
+      
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+      
 
-  */
-  
-  ret=sqlite3_exec(db->db,sql_cmd,NULL,NULL,errorMsg);
-  if(ret != SQLITE_OK)
-    {
-      fprintf(stderr,"ERROR could not open file %s %d\n",*errorMsg,ret);
-    }
-  else
-    ret = DNS_LOG_OK;
-  
-  if(e1 != NULL)
-    free(e1);
-  if(e2 != NULL)
-    free(e2);
+      if(msg->inet_af == AF_INET6)
+	{
+	  ip_addr_raw =0;
+	}
+      else
+	{
+	  ip_addr_raw=msg->ipv4.s_addr;
+	}
+      
+      rc = bind_sql_stmt_int(db->pre_stmt.q_stmt,	                          //Statement
+			     3,                                   //Index 3
+			     ip_addr_raw,                           // Client address raw..??
+			     errorMsg);                           //ErrorMessage
+      
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+	
+      rc = bind_sql_stmt_text(db->pre_stmt.q_stmt,                                //Statement
+			      4,                                   //Index 4
+			      ipv4_ascii,                          // Client address in ascii
+			      errorMsg);                           //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+      
+      rc = bind_sql_stmt_int(db->pre_stmt.q_stmt,                 //Statement
+			      5,                                   //Index 5
+			      msg->src_port,                       // Src port
+			      errorMsg);                           //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
 
-  free(ipv4_ascii);
-    
-  return ret;
-  
+      
+
+      rc = bind_sql_stmt_int(db->pre_stmt.q_stmt,                 //Statement
+			      6,                                   //Index 6
+			      msg->qtype,                          // Query type
+			      errorMsg);                           //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
 
 
+      rc = bind_sql_stmt_int(db->pre_stmt.q_stmt,                 //Statement
+			      7,                                  //Index 6
+			      msg->qclass,                        // Query classification
+			      errorMsg);                          //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+      
+      
+      rc = bind_sql_stmt_int(db->pre_stmt.q_stmt,                  //Statement
+			      8,                                   //Index 8
+			      msg->msglen,                         // message length
+			      errorMsg);                           //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+      
+      
+      
+      
+      rc = bind_sql_stmt_text(db->pre_stmt.q_stmt,                  //Statement
+			     9,                                   //Index 9
+			     strndup(msg->qname,strlen(msg->qname)),// Query name, need to copy it..
+			     errorMsg);                           //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+
+      rc = bind_sql_stmt_int(db->pre_stmt.q_stmt,                  //Statement
+			     10,                                   //Index 10
+			     msg->opcode,                         // opcode
+			     errorMsg);                           //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+
+      rc = bind_sql_stmt_int(db->pre_stmt.q_stmt,                  //Statement
+			     11,                                   //Index 11
+			     msg->rd,                              // Recursive desired flag 
+			     errorMsg);                           //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+
+
+      rc = bind_sql_stmt_int(db->pre_stmt.q_stmt,                  //Statement
+			     12,                                   //Index 12
+			     msg->edns.found,                      // Recursive desired flag 
+			     errorMsg);                            //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+
+      rc = bind_sql_stmt_int(db->pre_stmt.q_stmt,                  //Statement
+			     13,                                   //Index 13
+			     msg->edns.DO,                         // DO bit
+			     errorMsg);                            //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+
+      rc = bind_sql_stmt_int(db->pre_stmt.q_stmt,                  //Statement
+			     14,                                   //Index 14
+			     msg->edns.version,                    // EDNS version
+			     errorMsg);                            //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+      
+
+      rc = bind_sql_stmt_text(db->pre_stmt.q_stmt,                  //Statement
+			     15,                                   //Index 15
+			     e1,                                   // EXTRA SPACE..Got from function 
+			     errorMsg);                            //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+      
+
+      rc = bind_sql_stmt_text(db->pre_stmt.q_stmt,                  //Statement
+			      16,                                   //Index 16
+			      e2,                                   // EXTRA SPACE..Got from function 
+			      errorMsg);                            //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+
+      
+
+      return rc;
 }
 
 
-static int insert_msg_reply(DNSLog_struct *db,dns_message *msg,void *funArg,char **errorMsg)
+/*
+  Insert a reply message in the prepared statment..
+*/
+static int insert_r_msg(DNSLog_struct *db,dns_message *msg,void *funArg,char **errorMsg)
 {
-
-  char *e1 =NULL;
-  char *e2 = NULL;
   int ret =DNS_LOG_INTERNAL_ERROR;
+  char *e1=NULL;
+  char *e2=NULL;
+  char *ipv4_ascii = get_ip_addr_str(msg);
+  int ip_addr_raw;
+  int rc = 0;
+  
 
-  char sql_cmd[SQL_CMD_SZ]; // only temp...Used in this context...
-  char *ipv4_ascii = get_ipv4_addr(msg);
-
+  
   if(db->fun_e1 != NULL )
     {
       e1 = db->fun_e1(msg,funArg);
     }
- 
+    
+  
   if(db->fun_e2 != NULL )
     {
       e2 = db->fun_e2(msg,funArg);
     }
-
-    
-
   
-  snprintf(sql_cmd,SQL_CMD_SZ,SQL_COMMAND_REPLY_INSERT,
-	   db->table_name.reply,
-	   (int)msg->ts.tv_sec, 
-	   msg->msg_id,
-	   msg->client_ipv4_addr.s_addr,
-	   ipv4_ascii,
-	   msg->src_port,
-	   msg->qtype,
-	   msg->qclass,
-	   msg->msglen,
-	   msg->qname,
-	   msg->opcode,
-	   msg->rcode,
-	   msg->rd,
-	   msg->edns.found,
-	   msg->edns.DO,
-	   msg->edns.version,
-	   e1,
-	   e2);
-  
-  //printf("%s\n",sql_cmd);
+        
+  //So we inserted a time
+  rc = bind_sql_stmt_int(db->pre_stmt.r_stmt,      //The Statement
+			     1,                   //Index
+			     (int)msg->ts.tv_sec, //Number
+			     errorMsg);          //ErrorMessage
+      
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+      
+      rc = bind_sql_stmt_int(db->pre_stmt.r_stmt,                //Statement
+			     2,                   //Index 2
+			     msg->msg_id,        // Message ID
+			     errorMsg);          //ErrorMessage
+      
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
 
-  /*
-    So we finally made it to this point time to insert the message into the database..
-  */
-  
-  ret=sqlite3_exec(db->db,sql_cmd,NULL,NULL,errorMsg);
-  if(ret != SQLITE_OK)
-    {
-      fprintf(stderr,"ERROR could not open file %s %d\n",*errorMsg,ret);
-    }
-    else
-      ret = DNS_LOG_OK;
+      
+      if(msg->inet_af == AF_INET6)
+	{
+	  ip_addr_raw =0;
+	}
+      else
+	{
+	  ip_addr_raw=msg->ipv4.s_addr;
+	}
 
-  if(e1!=NULL)
-    free(e1);
-  if(e2 != NULL)
-    free(e2);
-  
-  free(ipv4_ascii);
-  return ret;
+      
+      rc = bind_sql_stmt_int(db->pre_stmt.r_stmt,	                          //Statement
+			     3,                                   //Index 3
+			     ip_addr_raw,        // Client address raw..??
+			     errorMsg);                           //ErrorMessage
+      
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+	
+      rc = bind_sql_stmt_text(db->pre_stmt.r_stmt,                 //Statement
+			      4,                                   //Index 4
+			      ipv4_ascii,                          // Client address in ascii
+			      errorMsg);                           //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+      
+      rc = bind_sql_stmt_int(db->pre_stmt.r_stmt,                 //Statement
+			      5,                                   //Index 5
+			      msg->src_port,                       // Src port
+			      errorMsg);                           //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+
+      
+
+      rc = bind_sql_stmt_int(db->pre_stmt.r_stmt,                 //Statement
+			      6,                                   //Index 6
+			      msg->qtype,                          // Query type
+			      errorMsg);                           //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+
+
+      rc = bind_sql_stmt_int(db->pre_stmt.r_stmt,                 //Statement
+			      7,                                  //Index 6
+			      msg->qclass,                        // Query classification
+			      errorMsg);                          //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+      
+      
+      rc = bind_sql_stmt_int(db->pre_stmt.r_stmt,                  //Statement
+			      8,                                   //Index 8
+			      msg->msglen,                         // message length
+			      errorMsg);                           //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+      
+      
+      
+
+      
+      rc = bind_sql_stmt_text(db->pre_stmt.r_stmt,                  //Statement
+			     9,                                   //Index 9
+			     strndup(msg->qname,strlen(msg->qname)),// Query name, need to copy it..
+			     errorMsg);                           //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+
+      rc = bind_sql_stmt_int(db->pre_stmt.r_stmt,                  //Statement
+			     10,                                   //Index 10
+			     msg->opcode,                         // opcode
+			     errorMsg);                           //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+
+      rc = bind_sql_stmt_int(db->pre_stmt.r_stmt,                  //Statement
+			     11,                                   //Index 11
+			     msg->rcode,                           // Recursive desired flag 
+			     errorMsg);                           //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+
+
+      rc = bind_sql_stmt_int(db->pre_stmt.r_stmt,                  //Statement
+			     12,                                   //Index 12
+			     msg->rd,                      // Recursive desired flag 
+			     errorMsg);                            //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+
+      
+      rc = bind_sql_stmt_int(db->pre_stmt.r_stmt,                  //Statement
+			     13,                                   //Index 12
+			     msg->edns.found,                      // Recursive desired flag 
+			     errorMsg);                            //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+
+
+      rc = bind_sql_stmt_int(db->pre_stmt.r_stmt,                  //Statement
+			     14,                                   //Index 13
+			     msg->edns.DO,                         // DO bit
+			     errorMsg);                            //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+
+      rc = bind_sql_stmt_int(db->pre_stmt.r_stmt,                  //Statement
+			     14,                                   //Index 14
+			     msg->edns.version,                    // EDNS version
+			     errorMsg);                            //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+      
+
+      rc = bind_sql_stmt_text(db->pre_stmt.r_stmt,                  //Statement
+			     15,                                   //Index 15
+			     e1,                                   // EXTRA SPACE..Got from function 
+			     errorMsg);                            //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+      
+
+      rc = bind_sql_stmt_text(db->pre_stmt.r_stmt,                  //Statement
+			      16,                                   //Index 16
+			      e2,                                   // EXTRA SPACE..Got from function 
+			      errorMsg);                            //ErrorMessage
+      if(rc != DNS_LOG_OK)
+	{
+	  // break out if it didnt work
+	  return rc;
+	}
+
+      
+
+      return rc;
 }
+
+  
+
+
+
+
   
 //--------------------
 /* 
@@ -498,6 +1042,8 @@ int DNSLog_open(void **db_struct,
   save_db->state.open = DNS_LOG_STATE_OK;
   save_db->fun_e1 = NULL;
   save_db->fun_e2 = NULL;
+  save_db->pre_stmt.q_stmt = NULL;
+  save_db->pre_stmt.r_stmt = NULL;
   *db_struct = (void *) save_db;
   
   return ret;
@@ -514,6 +1060,11 @@ int DNSLog_open(void **db_struct,
   One for queries and one for replies..
  ---------------------------------------- 
 */
+
+		      
+
+
+
 
 
 
@@ -533,6 +1084,7 @@ static int createTables(DNSLog_struct *db_struct,char **errorMsg)
   */
   
   
+  //SQL_COMMAND_PRE_CREATE_Q_TABLE
   q_table = create_sql_command(SQL_COMMAND_CREATE_Q_TABLE,db_struct->table_name.query);
   r_table = create_sql_command(SQL_COMMAND_CREATE_R_TABLE,db_struct->table_name.reply);
   
@@ -670,6 +1222,23 @@ int DNSLog_prepare(void *db_struct,char **errorMsg)
     {
       return ret;
     }
+
+
+  if((ret = prepare_q_stmt(db,errorMsg)) != DNS_LOG_OK)
+    {
+      return ret;
+    }
+  
+  if((ret = prepare_r_stmt(db,errorMsg)) != DNS_LOG_OK)
+    {
+      return ret;
+    }
+
+  
+	
+  
+
+  
   
   db->state.prepare = DNS_LOG_STATE_OK;
   return ret;
@@ -729,10 +1298,42 @@ int DNSLog_insert_dns_message(void *sdb, dns_message *msg,
   switch (descFun(NULL,msg))
     {
     case DNS_LOG_QUERY:
-      ret=insert_msg_query(db,msg,funArg,errorMsg);
+      ret = insert_q_msg(db,msg,funArg,errorMsg);
+      
+      if(ret == DNS_LOG_OK)
+	{
+	  ret=exec_sql_stmt(db->pre_stmt.q_stmt,errorMsg);
+	}
+      
+      if(ret == DNS_LOG_OK)
+	{
+    
+	  ret = reset_sql_stmt(db->pre_stmt.q_stmt,errorMsg);
+	  //ret = clear_bindings_sql_stmt(db->pre_stmt.q_stmt,errorMsg);
+	}
+
+
+      
+      //
       break;
     case DNS_LOG_REPLY:
-      ret=insert_msg_reply(db,msg,funArg,errorMsg);
+      ret = insert_r_msg(db,msg,funArg,errorMsg);
+	    
+      if(ret == DNS_LOG_OK)
+	{
+	  ret=exec_sql_stmt(db->pre_stmt.r_stmt,errorMsg);
+	}
+      
+      if(ret == DNS_LOG_OK)
+	{
+	  ret = reset_sql_stmt(db->pre_stmt.r_stmt,errorMsg);
+	  //ret = clear_bindings_sql_stmt(db->pre_stmt.q_stmt,errorMsg);
+	}
+
+
+
+
+      //ret=insert_msg_reply(db,msg,funArg,errorMsg);
       break;
     case DNS_LOG_ERROR:
       fprintf(stderr," Message unknown or malformed...");
@@ -746,6 +1347,27 @@ int DNSLog_insert_dns_message(void *sdb, dns_message *msg,
 	  
 
       return ret;
+}
+
+
+static void free_DNSLog_struct(DNSLog_struct *toFree)
+{
+  char *errorMsg;
+  
+  
+  
+  if(toFree->temp_file != NULL)
+    {
+      free(toFree->temp_file);
+    }
+  if(toFree->perm_file != NULL)
+    {
+      free(toFree->perm_file);
+    }
+
+  free(toFree->table_name.query);
+  free(toFree->table_name.reply);
+  free(toFree);
 }
 
 
@@ -800,6 +1422,26 @@ int DNSLog_close(void *db,char **errorMsg)
 #ifdef _TIME_INDEX
   end_timer(timer);
 #endif
+
+
+  /*
+    Need to finalize these before closing!! BUT IT DOES NOT WORK???
+  */
+  
+   if(db_struct->pre_stmt.q_stmt != NULL)
+     {
+       if(finalize_sql_stmt(db_struct->pre_stmt.q_stmt,errorMsg) != DNS_LOG_OK)
+       fprintf(stderr,"%s\n",errorMsg);
+     }
+   
+   
+  if(db_struct->pre_stmt.r_stmt != NULL)
+    {
+      if(finalize_sql_stmt(db_struct->pre_stmt.r_stmt,errorMsg) != DNS_LOG_OK)
+      fprintf(stderr,"%s\n",errorMsg);
+    }
+  
+
     
   if(sqlite3_close(db_struct->db) != SQLITE_OK)
     {

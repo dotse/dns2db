@@ -1,5 +1,5 @@
 /*
-  $Id: DNSLog_Int.h,v 1.1 2007/04/24 15:42:47 calle Exp $
+  $Id: DNSLog_Int.h,v 1.2 2007/07/06 13:59:42 calle Exp $
 */
 
 #ifndef DNS_LOG_INTERNAL
@@ -11,7 +11,18 @@
 typedef struct _dns_message dns_message;
 struct _dns_message {
   struct timeval ts;
-  struct in_addr client_ipv4_addr;
+  
+  struct client_ip{
+    union ip_version
+    {
+      struct in_addr IPv4;	/* IPv4 32-bits address */
+      struct in6_addr IPv6;	/* IPV6 128-bits address */
+    } IPV;
+    int af;
+  }ip_handler;
+  
+  
+  //struct in_addr client_ipv4_addr;
   uint16_t msg_id;
   uint16_t src_port;
   uint16_t qtype;
@@ -31,6 +42,10 @@ struct _dns_message {
   } edns;
   /* ... */
 };
+
+#define ipv6 ip_handler.IPV.IPv6
+#define ipv4 ip_handler.IPV.IPv4
+#define inet_af ip_handler.af
 #endif
 
 
