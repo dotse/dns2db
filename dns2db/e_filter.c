@@ -142,7 +142,7 @@ char *e2_filter(const dns_message *m,void *arg)
   
 char *NET_filter(const dns_message *m,void *arg)
 {
-  int cnt;
+  
   struct in_addr mask;
   struct in_addr masked_addr;
   struct in6_addr masked6_addr;

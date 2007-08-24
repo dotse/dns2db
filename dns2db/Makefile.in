@@ -9,6 +9,7 @@ CFLAGS= @CFLAGS@ @CPPFLAGS@ @DEFS@
 OBJS=dns2db.o \
 	read_pcap.o \
 	arg_handle.o \
+	tcp_factory_assemble.o \
 	e_filter.o 
 
 

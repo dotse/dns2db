@@ -1,4 +1,5 @@
 /* dns2db_config.h.  Generated from dns2db_config.h.in by configure.  */
+
 /* config.h.in.  Generated from configure.in by autoheader.  */
 
 /* Define to 1 if you have the <arpa/inet.h> header file. */
@@ -90,13 +91,13 @@
 #define PACKAGE_NAME "dns2db"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "dns2db 0.5_BETA"
+#define PACKAGE_STRING "dns2db 0.9_BETA"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "dns2db"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.5_BETA"
+#define PACKAGE_VERSION "0.9_BETA"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
@@ -122,7 +123,39 @@
  source/dest as in linux
  or uh_sport/uh_dport as in freeBSD
 */
-#ifndef HAVE_UDP_HEADER_SOURCE
-#define source uh_sport
-#define dest uh_dport
+
+#ifdef HAVE_UDP_HEADER_SOURCE
+#define uh_sport source
+#define uh_dport dest
 #endif
+
+
+
+/*
+  Check whether the tcp header is 
+  defined as according to RFC 793.
+  BSD - is using RFC 793.
+  Linux - is using its own
+*/
+/* #undef HAVE_TCP_HEADER_RFC793 */
+
+#ifndef HAVE_TCP_HEADER_RFC793
+#define th_sport source
+#define th_dport dest
+#define PSH_ACK_PACKET (tcp->psh && tcp->ack)
+
+
+
+#endif
+
+#ifdef HAVE_TCP_HEADER_RFC793
+#define doff th_off
+#define ack_seq th_ack
+#define seq th_seq
+#define PSH_ACK_PACKET ((0x18 & tcp->th_flags) & (TH_PUSH | TH_ACK)) == 0x18
+#endif
+
+
+
+
+

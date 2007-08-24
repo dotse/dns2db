@@ -2,24 +2,40 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(dns2db, 0.5_BETA, calle@autonomica.se)
+AC_INIT(dns2db, 0.9_BETA, calle@autonomica.se)
 AC_CONFIG_SRCDIR([dns2db.h])
 #AC_CONFIG_HEADER([config.h])
 
 # Set this to where ever libDNSLog is located
 # MacOSx do not seem to like this so removed
-#LDFLAGS="$LDFLAGS -L ../libDNSLog"
-#CFLAGS="$CFLAGS -I ../libDNSLog"
+# Trying to use pkg-config to locate libs...
+
+#LD_SQLITE3=`pkg-config  --libs-only-L sqlite3`
+#CF_SQLITE3=`pkg-config --cflags sqlite3`
+LD_GLIB=`pkg-config --libs-only-L glib-2.0`
+CF_GLIB=`pkg-config --cflags glib-2.0`
+
+CF_DNSLOG=`pkg-config --cflags DNSLog`
+LD_DNSLOG=`pkg-config --libs-only-L DNSLog`
+
+CFLAGS="$CFLAGS $CF_GLIB $CF_DNSLOG"
+LDFLAGS="$LDFLAGS $LD_GLIB $LD_DNSLOG" 
+echo "using $CFLAGS"
+echo "using $LDFLAGS"
+
 
 # Checks for programs.
 AC_PROG_CC
 
 # Checks for libraries.
-
+AC_CHECK_LIB([glib-2.0], [g_hash_table_new_full],,)
+AC_CHECK_LIB([sqlite3], [sqlite3_prepare_v2],,[AC_MSG_ERROR([Cannot find sqlite3 lib, please make sure it is installed and right version])])
 AC_CHECK_LIB([pcap], [pcap_open_offline])
-AC_CHECK_LIB([sqlite3], [sqlite3_close])
 AC_CHECK_LIB([DNSLog], [DNSLog_open])
 AC_CHECK_LIB([ldns], [ldns_wire2pkt])
+
+
+
 
 
 # Checks for header files.
@@ -65,7 +81,33 @@ AC_COMPILE_IFELSE([
 	
 	,[AC_MSG_RESULT([checking udp header source.. no])])]
 
+AC_COMPILE_IFELSE([
+#include <sys/types.h>
+#include <stdlib.h>
+#include <inttypes.h>
+#include <netinet/tcp.h>
 
+
+	int main(int argc,char *argv[])
+	{		    
+ 		 struct tcphdr hdr;
+		 hdr.th_seq = 123;
+		 hdr.th_off=0x0001;
+  
+  
+  
+		  return 1;
+	}
+
+
+	],
+	[AC_MSG_RESULT([checking tcp header source according to RFC 793:... yes])]
+	[AC_DEFINE([HAVE_TCP_HEADER_RFC793])]
+	
+	,[AC_MSG_RESULT([checking tcp header source according to RFC 793:... no])])]
+
+# In case of emergency with BSD...
+#AC_DEFINE([HAVE_TCP_HEADER_RFC793])
 AC_CONFIG_HEADERS([dns2db_config.h])
 AC_CONFIG_FILES([Makefile])
 

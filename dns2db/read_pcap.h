@@ -40,6 +40,8 @@ typedef enum
 #define READ_PCAP_IP_FRAGMENT -12
 #define READ_PCAP_WRONG_PORT -13
 #define READ_PCAP_DNS_PKT_ERROR -14
+#define READ_PCAP_TCP_ERROR -15
+#define READ_PCAP_NOT_PROCESS -16
 
 #ifndef ETHER_HDR_LEN
 #define ETHER_ADDR_LEN 6
@@ -74,9 +76,11 @@ int read_pcap_Set_QRA(void *,pkg_capture ,char **);
 #define C_CHAOS 3
 #endif
 
+#define TCP_HDR_LEN 20		/* Statically without options */
 #ifndef ETHERTYPE_IPV6
 #define ETHERTYPE_IPV6		0x86dd
 #endif
 
+#define READ_PCAP_DNS_HDR_SIZE 12
 
 #endif

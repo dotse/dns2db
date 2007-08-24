@@ -25,7 +25,8 @@
 
 #include <netinet/in_systm.h> /* iphdr and udphdr's*/
 #include <netinet/ip.h>
-#include <netinet/udp.h> 
+#include <netinet/tcp.h>	/* Tcp headers */
+#include <netinet/udp.h> 	/* Udp headers */
 /*
 
 Lets see if we can get ldns in this...
@@ -34,16 +35,8 @@ Lets see if we can get ldns in this...
 
 
 #include "read_pcap.h"
- /* for portability, use config later*/
-//#define strndup(str,len) strdup(str)
+#include "tcp_factory_assemble.h"
 
-#ifdef __linux__
-#define uh_dport dest
-#define uh_sport source
-#endif
-
-
-//extern dns_message *handle_dns(const char *buf, int len);
 static unsigned short port53;
 
 typedef int (handle_datalink) (dns_package *m,const u_char * pkt, int len);
@@ -95,7 +88,7 @@ int handle_dns(dns_package *m,uint8_t *pkg,int len)
 */
 int handle_udp(dns_package *m,const struct udphdr *udp, int len)
 {
-  char *buf[len];
+  uint8_t *buf[len];
   /*
     Allocating space for udp header.
     and insert memory to the udp header
@@ -125,6 +118,211 @@ int handle_udp(dns_package *m,const struct udphdr *udp, int len)
 }
  
 
+
+/* 
+   =======================
+   TCP- assemble
+   =======================
+                    len
+   <-------------------------------------->
+
+       tcp_len 	       	  DNS_len   
+   <------------>    <-------------------->
+   ----------------------------------------
+   |  tcp header |   |    DNS packet      |
+   ----------------------------------------
+       	       	  <-->		 
+ 		   ^- dns_len_tot
+		    		 
+	
+   Some good things to know
+   DNS_len = len - tcp_len -2 ,  This is how much data we get from the packet
+   That actually belongs to DNS packet
+   
+   offset = tcp_len + 2, The offset from the beginning to the start 
+   of DNS packet.
+   
+   tcp_header = We get from the header.
+
+   dns_len_tot = Are two bytes that tells us how exactly how big the 
+   DNS packet are (reassembled).
+
+   we create two new buffers:
+   struct *t_hdr  = size of tcp header, that is not the tcp_len due to that
+   we will skip the option fields. So its merly 20 bytes.
+
+   buf - which is the buffer that holds the DNS packet, it needs to be DNS_len big
+   
+   Abstract:
+
+   create a socket pair
+   
+   IF the SPAIR exists
+     Take the data add the data to the existing until
+     we have dns_len_tot..in the buffer which is identified by
+     the SPAIR
+     IF total_data_size == dns_len_tot
+       We can proceed with the existing data, and process the DNS packet
+     ELSE
+       Do nothing
+       
+   Else
+     IF dns_len_tot = DNS_len
+       We can proceed with the existing data..
+     Else
+       create a new SPAIR as key and data as value.
+     ENDIF
+   ENDIF
+   
+   
+   
+	
+ */
+
+   
+static int handle_tcp(dns_package *pkg, const  uint8_t *tcp_raw, int len)
+{
+  int exists=0;
+  int tcp_factory_rv=TCP_FACTORY_ERROR;
+  int ret=READ_PCAP_TCP_ERROR;
+  struct tcphdr *tcp = (struct tcphdr *) tcp_raw;
+  struct tcphdr *t_hdr;
+  int dns_len_tot=0;
+  int tcp_len = tcp->doff*4;
+  int DNS_len = len - tcp_len;
+  int offset = tcp_len;
+  uint8_t buf[DNS_len];
+  char *socketPair = NULL;
+  uint8_t *dns_data = NULL;
+
+
+
+/* 
+   We are only intrested when psh and ack is set 
+   And of course there are different ways of testing this
+   if the mashine is RFC 793 compliant..
+ */
+  if( PSH_ACK_PACKET && DNS_len > 0)	
+    {				/* all other packets is of now use */
+      
+      bzero(buf,DNS_len);	
+      t_hdr = malloc(TCP_HDR_LEN); /*  here is a choice either we save the tcp  
+				       Options too, or we just take the header..
+				       for now i just skip the
+				       options.. 20 bytes
+				   */
+
+
+      memcpy(t_hdr,tcp,TCP_HDR_LEN);
+      pkg->tcp_hdr = t_hdr;	/* Ok we saved the header */
+
+      
+      
+      socketPair = get_socket_pair(pkg);
+      //printf("Socket pair: %s\n",socketPair);
+
+
+      exists = tcp_factory_check_existens(socketPair);
+
+
+      if(DNS_len <= READ_PCAP_DNS_HDR_SIZE && exists != 1)
+	{
+	  /* So we conclude that this is a new message
+	     with zero bytes...Just the legth..
+	   */
+	  dns_len_tot = (tcp_raw[tcp_len] << 2) | (tcp_raw[tcp_len+1]); 
+	  
+	  /* Get the first length bytes, 
+	     it only matters if the key doesnt exists
+	     
+	  */
+	  tcp_factory_rv= tcp_factory_new_packet(socketPair,dns_len_tot);
+	  
+	}
+      else if(DNS_len > READ_PCAP_DNS_HDR_SIZE && exists == 1)
+	{
+	  /* It exists and has new data 
+	     insert the new data to hash,
+	     we dont need total size, its already set.
+	  */
+	  memcpy(buf,tcp_raw+offset,DNS_len); /* Get the tcp data into a buffer */
+	  tcp_factory_rv=tcp_factory_add_data(socketPair,
+					      buf,
+					      DNS_len,
+					      &dns_data);
+	  
+
+	}
+      else if(DNS_len > READ_PCAP_DNS_HDR_SIZE && exists != 1)
+	{
+	  /* It does not exists and has data... 
+	     get the length , and insert the data
+	   */
+	  dns_len_tot = (tcp_raw[tcp_len] << 2) | (tcp_raw[tcp_len+1]); 
+	  DNS_len -= 2;		/*  Remove the first 2 bytes */
+	  offset += 2;
+	  memcpy(buf,tcp_raw+offset,DNS_len);
+
+	  tcp_factory_new_packet(socketPair,dns_len_tot);
+	  /* Create a new value... */
+				 
+	  tcp_factory_rv=tcp_factory_add_data(socketPair,
+					      buf,
+					      DNS_len,
+					      &dns_data);
+	  /* Add the data */
+	  
+	}
+      else if(DNS_len <= READ_PCAP_DNS_HDR_SIZE && exists == 1)
+	{
+	  /*
+	    In this case the data exists,
+	    so we assume that this is some kind of
+	    data that needs to be reassambled.
+	    insert....
+	   */
+	  memcpy(buf,tcp_raw+offset,DNS_len);
+	  tcp_factory_rv=tcp_factory_add_data(socketPair,
+					      buf,
+					      DNS_len,
+					      &dns_data);
+	  
+	  
+	}
+      
+      free(socketPair);		/* No need for it anymore */
+      
+
+      if(tcp_factory_rv == TCP_FACTORY_FULL)
+	{
+	  ret = handle_dns(pkg,dns_data,DNS_len);
+	  //printf("Compare: %s\n",(memcmp(buf,dns_data,dns_len_tot) == 0) ? "Same" : "Not same");
+	  //printf("We got FULL data it is: %s size: %d tot_size: %d \n", 
+	  //(ret == READ_PCAP_OK) ? "OK" : "ERROR",
+	  //DNS_len,dns_len_tot		
+	  //);
+	  
+	  free(dns_data);	/* No need */
+	  
+	}
+      else if(tcp_factory_rv == TCP_FACTORY_PART)
+	{
+	  /* We got fragment of the packet... 
+	     its ok, but should not be processed... 
+	  */
+	  ret = READ_PCAP_NOT_PROCESS;
+	}
+      else
+	{
+	  printf("ERROR!!!\n");
+	}
+	
+		
+	  
+    }
+  return ret;
+}
+  
 /*
   ======================
   Handle ipv6 packet!
@@ -141,35 +339,17 @@ int handle_udp(dns_package *m,const struct udphdr *udp, int len)
 
 */
 
-static void test_ipv6_hdr(struct ip6_hdr *ip6)
-{
-
-  struct in6_addr *src =(struct in6_addr *) ip6->ip6_src.s6_addr;
-    //ip6->ip6_src;
-  char buf[INET6_ADDRSTRLEN];
-  
-  bzero(buf,INET6_ADDRSTRLEN);
-  
-  inet_ntop(AF_INET6,src,buf,INET6_ADDRSTRLEN+1);
-
-  printf("%s \n",buf);
-  
-}
-    
-    
-  
-
 
 
 #ifdef ETHERTYPE_IPV6
 int
 handle_ipv6(dns_package *pkg,const struct ip6_hdr * ip6, int len)
 {
-  int rc;
+  int rc = READ_PCAP_IP_UNKOWN_PROTO;;
   int nxt_proto_hdr = ip6->ip6_nxt;
   int offset = sizeof(*ip6);
   struct ip6_hdr *ip_hdr = malloc(offset);
-  char buf[len]; 		/* Should probably use uint_8 instead of char */
+  uint8_t buf[len]; 		/* Should probably use uint_8 instead of char */
   bzero(buf,len);
 
   
@@ -178,18 +358,11 @@ handle_ipv6(dns_package *pkg,const struct ip6_hdr * ip6, int len)
   
   pkg->ipV6_hdr = ip_hdr;
   
-/*   test_ipv6_hdr(ip_hdr);	 */
 
   /* Well Actually, if the next header is something other
    than UDP we just send back some error of unknown proto..
    
   */
-
-  /* if(IPPROTO_UDP != nxt_proto_hdr) */
-  /*     return READ_PCAP_IP_UNKOWN_PROTO; */
-  /*   if(IPPROTO_FRAGMENT != nxt_proto_hdr) */
-  /*     return READ_PCAP_IP_FRAGMENT; */
-  
   if(IPPROTO_UDP == nxt_proto_hdr)
     {
       /* Copy the rest of the content of the packet to buf */
@@ -200,12 +373,19 @@ handle_ipv6(dns_package *pkg,const struct ip6_hdr * ip6, int len)
       rc = handle_udp(pkg,(struct udphdr *)buf,len-offset);
       return rc;
     }
-  
-  
-  
-  printf("IPV6 message found \n");
+  else if(IPPROTO_TCP == nxt_proto_hdr)
+    {
+      memcpy(buf, (void *) ip6 + offset, len - offset);
+      pkg->IPV = IPV6;
 
-  return READ_PCAP_IP_UNKOWN_PROTO;
+      rc = handle_tcp(pkg,buf,len-offset);
+      
+    }
+  
+  
+  
+
+  return rc;
 }
 #endif
 
@@ -220,9 +400,9 @@ handle_ipv6(dns_package *pkg,const struct ip6_hdr * ip6, int len)
 
 int handle_ipv4(dns_package *m,const struct ip * ip, int len)
 {
-
+  int ret = READ_PCAP_IP_UNKOWN_PROTO;
   struct ip *i_hdr = malloc(sizeof(struct ip));
-  char *buf[len];
+  uint8_t buf[len];
   
 
   /*
@@ -235,29 +415,32 @@ int handle_ipv4(dns_package *m,const struct ip * ip, int len)
 
   int offset = ip->ip_hl << 2;
 
-
-
-    /*
-      NOT IMPLEMTED!!
-      ip_message_callback(ip);
-    */
-  if (IPPROTO_UDP != ip->ip_p)
-    return READ_PCAP_IP_UNKOWN_PROTO;
-    /* sigh, punt on IP fragments */
-  if (ntohs(ip->ip_off) & IP_OFFMASK)
-    return READ_PCAP_IP_FRAGMENT;
-
-
-  /*
-    take away the ip header and insert
-    that into buf, this buffer is used for
-    udp header and dns packet info.
-  */
-  memcpy(buf, (void *) ip + offset, len - offset);
   
+  if(IPPROTO_TCP == ip->ip_p)
+    {
+      
+      memcpy(buf, (void *) ip + offset, len - offset);
+      m->IPV = IPV4;
+      ret= handle_tcp(m,buf,len-offset);
+    }
+  else if (ntohs(ip->ip_off) & IP_OFFMASK)
+    ret = READ_PCAP_IP_FRAGMENT;
+  else if(IPPROTO_UDP == ip->ip_p)
+    {
+
+        /*
+	  take away the ip header and insert
+	  that into buf, this buffer is used for
+	  udp header and dns packet info.
+	*/
+      memcpy(buf, (void *) ip + offset, len - offset);
+      
+      
+      m->IPV = IPV4;
+      ret = handle_udp(m,(struct udphdr *) buf, len - offset);
+    }
   
-  m->IPV = IPV4;
-  return handle_udp(m,(struct udphdr *) buf, len - offset);
+  return ret;
 
 }
 
@@ -274,6 +457,10 @@ handle_ether(dns_package *m,const u_char *pkt, int len)
   char buf[len];
   struct ether_header *e_hdr = malloc(sizeof(struct ether_header));
 
+
+
+
+  
   
   e_hdr = memcpy(e_hdr,pkt,sizeof(struct ether_header));
   etype = ntohs(e_hdr->ether_type);
@@ -293,10 +480,13 @@ handle_ether(dns_package *m,const u_char *pkt, int len)
     len -= 4;
     }
   */
+
+  
   
 
   if (len < 0)
     return READ_PCAP_ETHER_UNSUFFICIENT_LEN;
+
 
   if (ETHERTYPE_IP == etype) {
     memcpy(buf, pkt, len); /* copy the remaingin packet into buf and send off*/
@@ -488,8 +678,10 @@ int read_pcap_init(void **reader_obj,const char *file_name, char *bpf_program,ch
     }
   
   *reader_obj = (void *) obj;
+  TCP_factory_init();
+  
   return READ_PCAP_OK;
-
+  
 }    
 
 
@@ -582,12 +774,12 @@ void free_dns(dns_package *m)
       free(m->e_hdr);
       m->e_hdr = NULL;
     }
-  if(m->ip_hdr.ip4 != NULL)
+  if(m->ip_hdr.ip4 != NULL)	/* Should not matter if we use ipv6 or ipv4 */
     {
       free(m->ip_hdr.ip4);
       m->ip_hdr.ip4 = NULL;
     }
-  if(m->udp_hdr != NULL)
+  if(m->udp_hdr != NULL)	/* Same as above */
     {
       free(m->udp_hdr);
       m->udp_hdr = NULL;
@@ -678,13 +870,17 @@ int read_pcap_exec(void *read_obj,HMSG *message_callback, void *cb_arg)
 	  
 	   
 	}
+      else if(ret == READ_PCAP_NOT_PROCESS)
+	{
+	  /*  Do not process its a fragment
+	      ex. a tcp packet.
+	   */
+	}
+
       else
 	{
 	  /*
 	    Something went wrong,
-	    its either a ipv6 or not a 
-	    dns packet.
-	    
 	    No error message please ;)
 	  */
 	  fails++;
@@ -726,6 +922,7 @@ void read_pcap_free(void *read_obj)
   
 }
   
+
 	
   
 

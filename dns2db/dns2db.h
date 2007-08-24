@@ -31,8 +31,15 @@ typedef struct _dns_package dns_package;
 struct _dns_package
 {
   ldns_pkt *pkt;
-  struct udphdr *udp_hdr;  
-  
+
+  union PROTO_HDR{
+    struct udphdr *udp;  
+    struct tcphdr *tcp;
+  } _proto_hdr;
+  #define udp_hdr _proto_hdr.udp
+  #define tcp_hdr _proto_hdr.tcp
+
+
   union IP_HDR{
     struct ip *ip4;
     struct ip6_hdr *ip6;

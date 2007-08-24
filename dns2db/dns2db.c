@@ -128,7 +128,7 @@ bool handle_question(ldns_rr_list *rr_list,void *msg)
 
 static void *is_src_address(void *msg,dns_package *pkg,DNSLOG_BOOL q,char **errorMsg)
 {
-  int af=AF_INET; 
+  
   struct in6_addr *in6 = NULL;
   struct in_addr *in4 = NULL;
 
@@ -147,7 +147,7 @@ static void *is_src_address(void *msg,dns_package *pkg,DNSLOG_BOOL q,char **erro
 	}
       if(DNSLog_set_client_addr(msg,&in4->s_addr,AF_INET,errorMsg) != DNS_LOG_OK)
       {
-	fprintf(stderr,"Error: %s \n",errorMsg);
+	fprintf(stderr,"Error: %s \n",*errorMsg);
 	exit(EXIT_FAILURE);
       }
       
@@ -167,7 +167,7 @@ static void *is_src_address(void *msg,dns_package *pkg,DNSLOG_BOOL q,char **erro
 	}
       if(DNSLog_set_client_addr(msg,&in6->s6_addr,AF_INET6,errorMsg) != DNS_LOG_OK)
       {
-	fprintf(stderr,"Error: %s \n",errorMsg);
+	fprintf(stderr,"Error: %s \n",*errorMsg);
 	exit(EXIT_FAILURE);
       }
 	
@@ -187,7 +187,7 @@ void *create_msg(dns_package *pkg)
 {
   char *errorMsg;
   void *msg = NULL;
-  struct ip *client_ip_struct = pkg->ipV4_hdr;
+  //struct ip *client_ip_struct = pkg->ipV4_hdr;
 
   uint16_t port;
   ldns_rr_list *ldns_rr=NULL;
@@ -245,7 +245,7 @@ void *create_msg(dns_package *pkg)
 	{
 	  fprintf(stderr,"Error: %s\n",errorMsg);
 	}
-      port = htons(pkg->udp_hdr->dest);
+      port = htons(pkg->udp_hdr->uh_dport);
       msg=is_src_address(msg,pkg,TRUE,&errorMsg);
       //      client_ip_addr = client_ip_struct->ip_dst;
 
@@ -264,7 +264,7 @@ void *create_msg(dns_package *pkg)
 	  fprintf(stderr,"Error: %s\n",errorMsg);
 	}
       
-      port = htons(pkg->udp_hdr->source);
+      port = htons(pkg->udp_hdr->uh_sport);
       msg=is_src_address(msg,pkg,FALSE,&errorMsg);
       
 
@@ -558,7 +558,7 @@ void *db_init(arg_struct *ar)
   if(ar->overwrite == 1)
     overwrite = DNS_LOG_OVERWRITE;
      
-    
+
       
   
   if(ar->database != NULL)
