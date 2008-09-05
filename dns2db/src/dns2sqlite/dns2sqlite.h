@@ -32,9 +32,11 @@
 #include <limits.h>
 #include <ctype.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include "global.h"
 #include "db.h"
 #include "line_parser.h"
+
 
 #define VERSION "DNS2SQLITE 2.0"
 #define PARTITION_INTERVAL_SECS 900L;
