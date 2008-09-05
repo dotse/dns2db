@@ -19,7 +19,7 @@ int main (int argc, char * argv []) {
    libtrace_packet_t * packet;
    libtrace_filter_t * filter = NULL;
    int snaplen = -1;
-   int promisc = -1;
+   int promisc = 1; // promisc < 1 = off, promisc >= 1 on.
 
    while (1) {
       int option_index;
