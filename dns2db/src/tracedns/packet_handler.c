@@ -87,8 +87,8 @@ packet_print (
 ) {
    char src_buf [INET6_ADDRSTRLEN];
    char dst_buf [INET6_ADDRSTRLEN];
-   const char *src_addr; 
-   const char *dst_addr;
+   const char *src_addr = NULL; 
+   const char *dst_addr = NULL;
 
    bzero (src_buf, INET6_ADDRSTRLEN);
    bzero (dst_buf, INET6_ADDRSTRLEN);
@@ -129,9 +129,9 @@ get_seg (
    in6addr_t *src_ip, 
    in6addr_t *dst_ip
 ) {
-   void *seg;
-   libtrace_ip_t *ip;
-   libtrace_ip6_t *ip6;
+   void *seg = NULL;
+   libtrace_ip_t *ip = NULL;
+   libtrace_ip6_t *ip6 = NULL;
    switch (ethertype) {
       case ETHERTYPE_IP:
          ip = (libtrace_ip_t *) dgram;
@@ -160,7 +160,7 @@ get_seg (
 // --- get_udp -----------------------------------------------------------------
 uint8_t *
 get_udp (libtrace_udp_t *udp, uint32_t *rest) {
-   uint8_t *p;
+   uint8_t *p = NULL;
    uint8_t *tmp = (uint8_t *) trace_get_payload_from_udp (udp, rest);
    if (tmp != NULL) {
       p = (uint8_t *) calloc (1, *rest);
@@ -221,9 +221,9 @@ get_seg_payload (
    in6addr_t *src_ip,
    in6addr_t *dst_ip
 ) {
-   uint8_t *p;
-   libtrace_tcp_t *tcp;
-   tcp_stream_t *st;
+   uint8_t *p = NULL;
+   libtrace_tcp_t *tcp = NULL;
+   tcp_stream_t *st = NULL;
    
    p = NULL;
    switch (proto) {
@@ -256,13 +256,13 @@ get_seg_payload (
 // assume Ethernet, IP, and DNS from BPF filtering
 void 
 per_packet (libtrace_packet_t *packet) {
-   uint8_t proto;
-   uint16_t ethertype;
-   uint32_t rest;
-   uint16_t src_port;
-   void *dgram;
-   void *seg;
-   uint8_t *p;
+   uint8_t proto = 0;
+   uint16_t ethertype = 0;
+   uint32_t rest = 0;
+   uint16_t src_port = 0;
+   void *dgram = NULL;
+   void *seg = NULL;
+   uint8_t *p = NULL;
    struct timeval ts;
    in6addr_t src_ip;
    in6addr_t dst_ip;
