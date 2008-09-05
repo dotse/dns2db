@@ -28,7 +28,7 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
-#include "config.h"
+#include "../../config.h"
 #if defined(HAVE_NET_ETHERNET_H)
    #include <net/ethernet.h>
 #elif defined(HAVE_NET_ETHERTYPES_H)
