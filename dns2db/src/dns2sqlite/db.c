@@ -42,15 +42,25 @@ static sql_stmt_t G_STMT [] = {
 #define NSTMT (sizeof G_STMT / sizeof G_STMT [0])
 
 // === Local function prototypes ===============================================
+
+/** Copy a file from "from" to "to". If "overwrite" is "TRUE" then overwrite any
+ *  existing destination file.
+ */
 int
 copy_file (char *from, char *to, bool_t overwrite);
 
+/** Finalize prepared statements.
+ */
 int
 finalize_stmts (sql_stmt_t *s);
 
+/** Store unhandled packets, i.e. non DNS messages, separately in the database.
+ */
 int
 store_unhandled_packet (sql_stmt_t *s, sqlite_int64 trace_id, trace_t *t, char *reason);
 
+/** Store an RR DATA section in the database.
+ */
 int
 store_dns_rr_data (
    sql_stmt_t *s, 
@@ -61,6 +71,8 @@ store_dns_rr_data (
    ldns_rdf *rdf
 );
 
+/** Store an RR record in the database.
+ */
 int
 store_dns_rr (
    sql_stmt_t *s, 
@@ -71,6 +83,8 @@ store_dns_rr (
    ldns_rr *rr
 );
 
+/** Store a list of RR records in the database.
+ */
 int
 store_dns_rr_list (
    sql_stmt_t *s, 
@@ -80,9 +94,16 @@ store_dns_rr_list (
    ldns_rr_list *rr_list
 );
 
+/** Store a presumed DNS message in the database. If the DNS message can't be
+ *  parsed as a proper DNS message then it will be stored unparsed as an 
+ *  "unhandled packet".
+ */
 int
 store_dns_packet (sql_stmt_t *s, sqlite_int64 trace_id, ldns_pkt *pdns);
 
+/** Store general information about the packet trace, i.e. timestamp, IP-
+ *  addresses, protocol, and port.
+ */
 int 
 store_trace (sqlite3 *db, sql_stmt_t *s, trace_t *t, sqlite_int64 *trace_id);
 
@@ -126,17 +147,17 @@ copy_file (char *from, char *to, bool_t overwrite) {
    
    if (ferror (f_fp) && ferror (t_fp)) {
       fprintf (stderr, "Failed both reading from %s and writing to %s.\n", from, to);
-      fprintf (stderr, "%s,%d,%s\n", __FILE__,__LINE__,strerror(errno));
+      fprintf (stderr, "%s, %d, %s\n", __FILE__, __LINE__, strerror (errno));
       return FAILURE;
    }
    else if (ferror (f_fp)) {
       fprintf (stderr, "Failed while reading from %s.\n", from);
-      fprintf (stderr, "%s,%d,%s\n", __FILE__,__LINE__,strerror(errno));
+      fprintf (stderr, "%s, %d, %s\n", __FILE__, __LINE__, strerror (errno));
       return FAILURE;
    }
    else if (ferror (t_fp)) {
       fprintf (stderr, "Failed while writing to %s.\n", to);
-      fprintf (stderr, "%s,%d,%s\n", __FILE__,__LINE__,strerror(errno));
+      fprintf (stderr, "%s, %d, %s\n", __FILE__, __LINE__, strerror (errno));
       return FAILURE;
    }
    else {
