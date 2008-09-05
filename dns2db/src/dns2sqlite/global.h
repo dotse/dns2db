@@ -33,6 +33,7 @@
 #include <sqlite3.h>
 #include <ldns/ldns.h>
 #include <regex.h>
+#include <sys/errno.h>
 #include "trace_data.h"
 
 typedef enum Bool {FALSE, TRUE} bool_t;
