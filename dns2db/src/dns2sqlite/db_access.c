@@ -271,13 +271,13 @@ insert_trace (
       return FAILURE;
    }
    
-   rc = sqlite3_bind_int (ps, 5, src_addr_id);
+   rc = sqlite3_bind_int64 (ps, 5, src_addr_id);
    if (rc != SQLITE_OK) {
       fprintf (stderr, "Could not bind value to parameter.\n");
       return FAILURE;
    }
    
-   rc = sqlite3_bind_int (ps, 6, dst_addr_id);
+   rc = sqlite3_bind_int64 (ps, 6, dst_addr_id);
    if (rc != SQLITE_OK) {
       fprintf (stderr, "Could not bind value to parameter.\n");
       return FAILURE;
@@ -318,7 +318,7 @@ insert_dns_header (sqlite3_stmt *ps, sqlite_int64 trace_id, ldns_pkt *pdns) {
       return FAILURE;
    }
    
-   rc = sqlite3_bind_int (ps, 1, trace_id);
+   rc = sqlite3_bind_int64 (ps, 1, trace_id);
    if (rc != SQLITE_OK) {
       fprintf (stderr, "Could not bind value to parameter.\n");
       return FAILURE;
@@ -442,7 +442,7 @@ insert_dns_rr_data (
       return FAILURE;
    }
    
-   rc = sqlite3_bind_int (ps, 1, trace_id);
+   rc = sqlite3_bind_int64 (ps, 1, trace_id);
    if (rc != SQLITE_OK) {
       fprintf (stderr, "Could not bind value to parameter.\n");
       return FAILURE;
@@ -512,7 +512,7 @@ insert_dns_rr (
       return FAILURE;
    }
    
-   rc = sqlite3_bind_int (ps, 1, trace_id);
+   rc = sqlite3_bind_int64 (ps, 1, trace_id);
    if (rc != SQLITE_OK) {
       fprintf (stderr, "Could not bind value to parameter.\n");
       return FAILURE;
