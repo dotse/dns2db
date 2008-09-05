@@ -27,7 +27,7 @@
  */
 #include "dns2sqlite.h"
 
-static sqlite3 *G_DB;
+static sqlite3 *G_DB = NULL;
 
 // === Local function prototypes ===============================================
 void
@@ -47,6 +47,12 @@ make_full_db_path (char *folder, char *db_dir_name);
 
 unsigned long
 interval_start (unsigned long secs, unsigned long interval);
+
+unsigned long
+p_start (unsigned long ps, unsigned long s, unsigned long pi);
+
+int
+make_db_dir (char *dt, char *dir);
 
 // === Function implementations ================================================
 
@@ -135,6 +141,48 @@ interval_start (unsigned long secs, unsigned long interval) {
    return secs - delta;
 }
 
+// --- p_start -----------------------------------------------------------------
+unsigned long
+p_start (unsigned long ps, unsigned long s, unsigned long pi) {
+   return ps == 0 ? interval_start (s, pi) : ps;
+}
+
+// --- make_db_dir -------------------------------------------------------------
+int
+make_db_dir (char *dt, char *dir) {
+   char *db_dir_name = NULL;
+   char *full_path = NULL;
+   int rc = 0;
+  
+   db_dir_name = make_db_dir_name (dt);
+   if (db_dir_name == NULL) {
+      return FAILURE;
+   }
+   
+   full_path = make_full_db_path (dir, db_dir_name);
+   if (full_path == NULL) {
+      XFREE(db_dir_name);
+      return FAILURE;
+   }
+   XFREE(db_dir_name);
+   // only need to create dir when it does not exist! Add check for that
+   // or try to create and handle the error if it exists.
+   rc = mkdir (full_path, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
+   if (rc == -1 && errno != EEXIST) {
+      perror (NULL);
+      XFREE(full_path);
+      return FAILURE;
+   }
+   rc = chdir (full_path);
+   if (rc == -1) {
+      perror (NULL);
+      XFREE(full_path);
+      return FAILURE;
+   }
+   XFREE(full_path);
+   return SUCCESS;
+}
+
 // --- usage -------------------------------------------------------------------
 void
 usage (char *argv0) {
@@ -157,11 +205,10 @@ main (int argc, char *argv []) {
    char *filename = NULL;
    char *template = NULL;
    char *folder = ".";
-   char *db_dir_name = NULL;
+   char *dt = NULL;
    char *dt_filename = NULL;
    unsigned long partition_interval = PARTITION_INTERVAL_SECS;
    unsigned long partition_start = 0;
-   int packet_count = 0;
    int opt_idx = 0;
    int c = 0;
    int rc = 0;
@@ -220,6 +267,20 @@ main (int argc, char *argv []) {
    argv += optind;
 
    // handle dangling command line arguments
+   // N.B. this does not work if a pipe and a file is used at the same time.
+   // If files are given then they should be processed before the pipe is read
+   // from stdin. That is, while argc > 0 open each file and go to the main
+   // loop. When argc = 0 then open stdin and go to the main loop:
+   //
+   // while (argc > 0) {
+   //    fp = fopen (argv [argc -1], "r");
+   //    if (fp == NULL) {return FAILURE}
+   //    else {read_file (fp, ...);}
+   //    fclose (fp);
+   //    argc--;
+   // }
+   // fp = stdin;
+   
    switch (argc) {
       case 0:
          fp = stdin;
@@ -236,11 +297,11 @@ main (int argc, char *argv []) {
          return 1;
    }
 
-   // main loop   
+   // main loop
+   // This should definately be refactored into several small functions!
    while ((t = parse_line (fp)) != NULL) {
-      partition_start = partition_start == 0
-                          ? interval_start (t->s, partition_interval)
-                          : partition_start;
+      partition_start = p_start (partition_start, t->s, partition_interval);
+
       if ((unsigned long) t->s >= (partition_start + partition_interval)) {
          rc = commit ((stmts + COMMIT)->pstmt);
          close_db (G_DB);
@@ -248,70 +309,33 @@ main (int argc, char *argv []) {
          rc = chdir ("..");
          if (rc == -1) {
             perror (NULL);
-            XFREE(db_dir_name);
             return FAILURE;
          }
-         XFREE(db_dir_name);
          partition_start += partition_interval;
-      }
-      
-      // check if db_dir_name is set. If not, set the filename and the db_dir_name.
-      // should this be done here or after "if (!isdbopen ...)" below?
-      if (db_dir_name == NULL) {
-         char *dt;
-         char *full_path;
-         
-         dt = sec_to_datetime_str (partition_start);
-         if (dt == NULL) {
-            return FAILURE;
-         }
-
-         dt_filename = make_dt_filename (dt, filename);
-         if (dt_filename == NULL) {
-            XFREE(dt);
-            return FAILURE;
-         }
-         
-         db_dir_name = make_db_dir_name (dt);
-         if (db_dir_name == NULL) {
-            XFREE(dt);
-            XFREE(dt_filename);
-            return FAILURE;
-         }
-
-         full_path = make_full_db_path (folder, db_dir_name);
-         if (full_path == NULL) {
-            XFREE(dt);
-            XFREE(dt_filename);
-            XFREE(db_dir_name);
-            return FAILURE;
-         }
-         
-         // only need to create dir when it does not exist! Add check for that
-         // or try to create and handle the error if it exists.
-         rc = mkdir (full_path, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
-         if (rc == -1 && errno != EEXIST) {
-            perror (NULL);
-            XFREE(dt);
-            XFREE(dt_filename);
-            XFREE(db_dir_name);
-            XFREE(full_path);
-            return FAILURE;
-         }
-         rc = chdir (full_path);
-         if (rc == -1) {
-            perror (NULL);
-            XFREE(dt);
-            XFREE(dt_filename);
-            XFREE(db_dir_name);
-            XFREE(full_path);
-            return FAILURE;
-         }
-         XFREE(full_path);
       }
       
       if (!isdbopen (G_DB)) {
          if (!open_db (filename, &G_DB)) {
+            dt = sec_to_datetime_str (partition_start);
+            if (dt == NULL) {
+               return FAILURE;
+            }
+            
+            dt_filename = make_dt_filename (dt, filename);
+            if (dt_filename == NULL) {
+               XFREE(dt);
+               return FAILURE;
+            }
+            
+            // check if db_dir_name is set. If not, set the filename and the db_dir_name.
+            // should this be done here or after "if (!isdbopen ...)" below?
+               if (make_db_dir (dt, folder) != SUCCESS) {
+                  XFREE(dt);
+                  XFREE(dt_filename);
+                  return FAILURE;
+               }
+            XFREE(dt);
+            
             if (!create_db (template, dt_filename, dbf_overwrite, &G_DB)) {
                fprintf (stderr, "Failed to create new db.\n");
                XFREE(dt_filename); 
@@ -326,13 +350,12 @@ main (int argc, char *argv []) {
          }
          rc = start_transaction ((stmts + BEGIN_TRANS)->pstmt);
       }
-      
+
       if (!store_to_db (G_DB, stmts, t)) {
          fprintf (stderr, "Failed to store data to db.\n");
       }
 
       trace_free (t);
-      packet_count++;
    }
 
    // clean up before exit
