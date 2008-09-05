@@ -1,0 +1,12 @@
+AC_INIT(dns2db, 1.0, x@iis.se)
+
+AM_INIT_AUTOMAKE(tracedns,1.0 dns2sqlite,1.0)
+
+AC_CONFIG_HEADER(config.h)
+
+AC_PROG_CC
+
+AC_PROG_INSTALL
+
+AC_OUTPUT(Makefile src/Makefile src/tracedns/Makefile src/dns2sqlite/Makefile)
+
