@@ -27,6 +27,52 @@
  */
 #include "packet_handler.h"
 
+// === Local function prototypes ===============================================
+/** Get a segment, i.e. the payload, from a datagram.
+ */
+void *
+get_seg (
+   uint16_t ethertype, 
+   void *dgram, 
+   uint8_t *proto, 
+   uint32_t *rest, 
+   in6addr_t *src_ip, 
+   in6addr_t *dst_ip
+);
+
+/** Get the UDP packet from a segment.
+ */
+uint8_t *
+get_udp (libtrace_udp_t *udp, uint32_t *rest);
+
+/** Build a representation of a TCP packet stream.
+ */
+tcp_stream_t *
+build_tcp_stream (
+  in6addr_t *src_ip, 
+  in6addr_t *dst_ip, 
+  libtrace_tcp_t *tcp, 
+  tcp_stream_t *st, 
+  uint32_t *rest
+);
+
+/** Get a complete TCP payload from a TCP stream.
+ */
+uint8_t *
+get_tcp (libtrace_tcp_t *tcp, tcp_stream_t *st, uint32_t *rest);
+
+/** Get the payload from a segment, i.e. the TCP or UDP packet.
+ */
+uint8_t *
+get_seg_payload (
+   uint8_t proto,
+   void *seg,
+   uint32_t *rest, // bytes after IP header remaining in seg, i.e the size of the IP payload.
+   in6addr_t *src_ip,
+   in6addr_t *dst_ip
+);
+
+// === Function implementations ================================================
 // --- packet_print ------------------------------------------------------------
 void
 packet_print (
@@ -63,7 +109,7 @@ packet_print (
       remaining
    );
 
-   for (int i = 0; i < remaining; ++i, ++p) {
+   for (unsigned int i = 0; i < remaining; ++i, ++p) {
       if (proto == IPPROTO_TCP && i < 2) {
          continue;
       }
@@ -86,7 +132,6 @@ get_seg (
    void *seg;
    libtrace_ip_t *ip;
    libtrace_ip6_t *ip6;
-//   unsigned int iplen;
    switch (ethertype) {
       case ETHERTYPE_IP:
          ip = (libtrace_ip_t *) dgram;
@@ -97,12 +142,6 @@ get_seg (
          memcpy ((uint32_t *)src_ip + 3, &(ip->ip_src), sizeof (struct in_addr));
          memcpy ((uint32_t *)dst_ip + 3, &(ip->ip_dst), sizeof (struct in_addr));
          
-//         iplen = ntohs (ip->ip_len) - ip->ip_hl * 4;
-//         if (proto == IPPROTO_TCP && iplen < *rest) {
-//            ;
-//         }
-//         *rest = ntohs (ip->ip_len) - ip->ip_hl * 4;
-         
          break;
       case ETHERTYPE_IPV6:
          ip6 = (libtrace_ip6_t *) dgram;
@@ -110,11 +149,6 @@ get_seg (
          *src_ip = ip6->ip_src;
          *dst_ip = ip6->ip_dst;
 
-//         iplen = ntohs (ip6->plen);
-//         if (proto == IPPROTO_TCP && *rest <> iplen) {
-//            return NULL;
-//         }
-//         *rest = ntohs (ip6->plen);
          break;
       default:
          return NULL;
@@ -188,8 +222,6 @@ get_seg_payload (
    in6addr_t *dst_ip
 ) {
    uint8_t *p;
-//   uint8_t *tmp;
-//   libtrace_udp_t *udp;
    libtrace_tcp_t *tcp;
    tcp_stream_t *st;
    
@@ -197,47 +229,11 @@ get_seg_payload (
    switch (proto) {
       case IPPROTO_UDP:
          p = get_udp ((libtrace_udp_t *) seg, rest);
-/*
-         udp = (libtrace_udp_t *) seg;
-         tmp = (uint8_t *) trace_get_payload_from_udp (udp, rest);
-         if (tmp != NULL) {
-            p = (uint8_t *) calloc (1, *rest);
-            assert (p != NULL);
-            memcpy (p, tmp, *rest);
-         }
-*/
       break;
       case IPPROTO_TCP:
          tcp = (libtrace_tcp_t *) seg;
          st = tcp_lookup (src_ip, dst_ip, tcp->source, tcp->dest);
          st = build_tcp_stream (src_ip, dst_ip, tcp, st, rest);
-/*
-         if (st == NULL) { // new stream
-            if (tcp->syn == 1) {
-               st = tcp_add_stream (src_ip, dst_ip, tcp->source, tcp->dest);
-               tcp_add_segment (st, tcp, rest);
-//               p = tcp->fin == 1 ? tcp_get_stream_data (st, rest) : NULL;
-            }
-            else {
-               XFREE(st);
-            }
-         }
-         else { // existing stream
-            if (tcp->rst == 1) {
-               tcp_delete_stream (st);
-            }
-            else if (tcp->syn == 1) {
-               tcp_delete_stream (st);
-               st = tcp_add_stream (src_ip, dst_ip, tcp->source, tcp->dest);
-               tcp_add_segment (st, tcp, rest);
-//               p = tcp->fin == 1 ? tcp_get_stream_data (st, rest) : NULL;
-            }
-            else {
-               tcp_add_segment (st, tcp, rest);
-//               p = tcp->fin == 1 ? tcp_get_stream_data (st, rest) : NULL;
-            }
-         }
-*/
          // get the assembled TCP packet and remove the individual segments.
          p = st != NULL ? get_tcp (tcp, st, rest): NULL;
          if (p != NULL) {
