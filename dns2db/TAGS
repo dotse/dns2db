@@ -1,0 +1,204 @@
+
+arg_handle.c,88
+#define _GNU_SOURCE2,1
+void read_pcap_usage(12,271
+arg_struct *check_options(75,2643
+
+dns2db.c,351
+#define _GNU_SOURCE5,90
+bool handle_question(38,690
+static void *is_src_address(129,2214
+void *create_msg(186,3148
+int message_callback(394,7189
+void exec_pcap_read(438,7877
+void set_QRA_options(462,8390
+void file_round_robin(517,9628
+void *db_init(550,10251
+void db_prepare(590,10887
+ void db_set_filter_func(621,11513
+int main(674,12580
+
+e_filter.c,330
+#define _GNU_SOURCE23,546
+static regex_t *e1_preg=45,832
+static regex_t *e2_preg=46,862
+char *e1_filter(48,893
+char *e2_filter(88,1517
+char *NET_filter(143,2463
+int e1_filter_compile(191,3788
+void *e1_filter_function(229,4564
+int e2_filter_compile(255,4972
+void *e2_filter_function(293,5678
+void e_filter_free(312,5887
+
+read_pcap.c,648
+#define _GNU_SOURCE6,92
+#define uh_dport 44,878
+#define uh_sport 45,900
+static unsigned short port53;50,993
+typedef int (handle_datalink)handle_datalink52,1024
+} read_pcap_struct;read_pcap_struct64,1253
+int handle_dns(67,1275
+int handle_udp(99,1710
+static int handle_tcp(192,3944
+handle_ipv6(349,7750
+int handle_ipv4(404,8930
+handle_ether(457,9995
+handle_pcap(526,11188
+int read_pcap_bpf_filter(541,11485
+int read_pcap_init(613,13112
+int read_pcap_Set_QRA(707,14877
+static int Check_to_proceed(738,15510
+void free_dns(771,16080
+static void init_dns_packet(800,16533
+int read_pcap_exec(824,16864
+void read_pcap_free(907,18516
+
+tcp_factory_assemble.c,724
+#define _GNU_SOURCE39,1328
+static GHashTable *hashTbl=59,1827
+struct value_structvalue_struct64,1864
+  SRC,72,1957
+  DST,73,1964
+}HOST;HOST74,1971
+void key_destroy(80,1984
+void val_destroy(86,2038
+static char * address_to_str(99,2210
+static char * create_socket_str(121,2600
+static char * assemble_socket(143,2935
+static char * create_pair_str(204,3972
+char *get_socket_pair(231,4541
+void TCP_factory_init(238,4629
+static int add_to_buffer(259,5014
+static struct value_struct * check_Socket_exists(296,5698
+static struct value_struct *create_value(327,6278
+int tcp_factory_new_packet(354,6863
+int tcp_factory_add_data(381,7347
+int tcp_factory_assemble(406,7821
+int tcp_factory_check_existens(471,9038
+
+arg_handle.h,68
+#define READ_PCAP_ARG_HANDLE_H6,96
+} arg_struct;arg_struct25,374
+
+config.h,0
+
+dns2db_config.h,1114
+#define HAVE_ARPA_INET_H 5,199
+#define HAVE_INET_NTOA 8,283
+#define HAVE_INTTYPES_H 11,369
+#define HAVE_LIBPCAP 14,455
+#define HAVE_LIBSQLITE3 17,544
+#define HAVE_MALLOC 21,672
+#define HAVE_MEMORY_H 24,753
+#define HAVE_MEMSET 27,831
+#define HAVE_NETINET_IN_H 30,916
+#define HAVE_REGCOMP 33,999
+#define HAVE_STDINT_H 40,1229
+#define HAVE_STDLIB_H 43,1312
+#define HAVE_STRCHR 46,1390
+#define HAVE_STRDUP 49,1466
+#define HAVE_STRINGS_H 52,1548
+#define HAVE_STRING_H 55,1632
+#define HAVE_STRNDUP 58,1711
+#define strndup(strndup60,1755
+#define HAVE_SYSLOG_H 65,1859
+#define HAVE_SYS_SOCKET_H 68,1946
+#define HAVE_SYS_STAT_H 71,2035
+#define HAVE_SYS_TIME_H 74,2122
+#define HAVE_SYS_TYPES_H 77,2210
+#define HAVE_UNISTD_H 80,2296
+#define LSTAT_FOLLOWS_SLASHED_SYMLINK 84,2409
+#define PACKAGE_BUGREPORT 87,2529
+#define PACKAGE_NAME 90,2625
+#define PACKAGE_STRING 93,2715
+#define PACKAGE_TARNAME 96,2816
+#define PACKAGE_VERSION 99,2895
+#define STDC_HEADERS 102,2986
+#define TIME_WITH_SYS_TIME 105,3086
+#define HAVE_UDP_HEADER_SOURCE 119,3448
+#define source 126,3612
+#define dest 127,3636
+
+dns2db.h,569
+#define DNS_MESSAGE12,140
+#define MAX_QNAME_SZ 22,280
+typedef struct _dns_package dns_package;dns_package25,307
+  typedef enum {IPV4=27,349
+  typedef enum {IPV4=4,IPV6=27,349
+  typedef enum {IPV4=4,IPV6=6,}IP_VERSION;IP_VERSION27,349
+struct _dns_package_dns_package31,395
+  union PROTO_HDR{PROTO_HDR35,435
+  #define udp_hdr 39,520
+  #define tcp_hdr 40,553
+  union IP_HDR{IP_HDR43,588
+#define ipV4_hdr 54,751
+#define ipV6_hdr 55,779
+#define ETHER_ADDR_LEN 61,839
+#define ETHER_TYPE_LEN 62,864
+#define ETHER_HDR_LEN 63,889
+#define DEFAULT_DB 65,950
+
+e_filter.h,374
+#define E_FILTER_H6,82
+#define E_FILTER_USE_DEFAULT 8,102
+#define E_FILTER_OK 10,134
+#define E_FILTER_INTERNAL_ERROR 11,156
+#define E_FILTER_REGEXP_COMP_ERROR 13,192
+#define E_FILTER_REGEXP_COMP_ERROR_STR 14,230
+#define E_FILTER_NO_REGEXP 16,301
+#define E_FILTER_NO_REGEXP_STR 17,331
+#define E_FILTER_MEM_ALLOC_ERR 19,389
+#define E_FILTER_MEM_ALLOC_ERR_STR 20,423
+
+read_pcap.h,1398
+#define _READ_PCAP_H3,22
+    Q,8,82
+    R,9,89
+    A10,96
+  }pkg_capture;pkg_capture11,102
+#define READ_PCAP_OK 13,119
+#define READ_PCAP_NO_FILE 15,143
+#define READ_PCAP_NO_FILE_STR 16,172
+#define READ_PCAP_FAILED_OFFLINE 18,225
+#define READ_PCAP_UNSOPPORTED_LINK 20,262
+#define READ_PCAP_UNSOPPORTED_LINK_STR 21,300
+#define READ_PCAP_BPF_COMPILE 23,365
+#define READ_PCAP_BPF_COMPILE_STR 24,398
+#define READ_PCAP_BPF_SETFILTER 26,458
+#define READ_PCAP_BPF_SETFILTER_STR 27,493
+#define READ_PCAP_NO_READ_PCAP 29,553
+#define READ_PCAP_NO_READ_PCAP_STR 30,587
+#define READ_PCAP_PCAP_HEADER_LEN_PROBLEM 35,711
+#define READ_PCAP_ETHER_HEADER_LEN_PROBLEM 36,757
+#define READ_PCAP_UNKOWN_ETHER_TYPE 37,803
+#define READ_PCAP_ETHER_UNSUFFICIENT_LEN 38,842
+#define READ_PCAP_IP_UNKOWN_PROTO 39,887
+#define READ_PCAP_IP_FRAGMENT 40,925
+#define READ_PCAP_WRONG_PORT 41,959
+#define READ_PCAP_DNS_PKT_ERROR 42,992
+#define READ_PCAP_TCP_ERROR 43,1028
+#define READ_PCAP_NOT_PROCESS 44,1060
+#define ETHER_ADDR_LEN 47,1117
+#define ETHER_TYPE_LEN 48,1142
+#define ETHER_HDR_LEN 49,1167
+#define ETHERTYPE_8021Q	52,1258
+#define READ_PCAP_CONT 55,1297
+#define READ_PCAP_END 56,1322
+typedef int (HMSG)HMSG58,1347
+#define T_OPT 68,1645
+#define T_AAAA 72,1714
+#define C_CHAOS 76,1756
+#define TCP_HDR_LEN 79,1782
+#define ETHERTYPE_IPV6	81,1862
+#define READ_PCAP_DNS_HDR_SIZE 84,1901
+
+tcp_factory_assemble.h,274
+#define _TCP_FACTORY_ASSEMBLE8,52
+#define SOCKET_STR 12,104
+#define SOCKET_STR_EXTRA_CHR 13,131
+#define SOCKET_PAIR_STR 15,199
+#define SOCKET_PAIR_STR_EXTRA_CHAR 16,232
+#define TCP_FACTORY_ERROR 18,270
+#define TCP_FACTORY_PART 19,299
+#define TCP_FACTORY_FULL 20,326

@@ -1,0 +1,18 @@
+# Package Information for pkg-config
+# This should be done automatically.
+# But for now this works
+
+
+
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: DNSLog
+Description: DNSLog database engine
+Version: @VERSION@
+URL: http://opensource.iis.se/trac/dns2db
+Requires: sqlite3 >= 3.3
+Libs: -L${libdir} @L_SQLITE3@ -lDNSLog -lsqlite3
+Cflags: -I${includedir} @C_SQLITE3@
