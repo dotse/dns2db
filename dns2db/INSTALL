@@ -1,0 +1,69 @@
+How to install dns2db
+
+DEPENDANCIES
+============
+- libtrace-3.0.4 (http://research.wand.net.nz/software/libtrace.php)
+- ldns-1.3.0 (http://www.nlnetlabs.nl/projects/ldns)
+- sqlite-3.0.4 (http://www.sqlite.org/)
+
+INSTALLATION
+============
+
+The installation basically consists of two steps, building the
+binaries and creating a template database. You may also like to
+install the rc start/stop script to automatically start and
+stop dns2db at the appropriate run level at boot.
+
+
+Build the binaries
+
+Change to the top level directory for the system. The top level
+directory should be the same as where you found this file. Then run:
+
+   ./configure
+   make
+   make install
+
+On systems where the dependent libraries are not installed in the 
+default include and library search paths use the environment
+variables CFLAGS and LDFLAGS to direct the compiler and linker to 
+search in the correct places. For example:
+
+   CFLAGS="-I/usr/local/include" LDFLAGS="-L/usr/local/lib" ./configure
+
+Additional compiler and linker options can be added in the same way,
+notably "-O2", "-pedantic", "-Wall", and "-std=c99" for CFLAGS.
+
+"configure" will typically try to install the resulting binaries,
+tracedns and dns2sqlite, in /usr/local/bin. If another installation
+location is desired then use the appropriate command line parameters
+to "configure", notably "--exec-prefix" (see "configure --help").
+
+
+Create a template database
+
+Before running dns2sqlite (directly or indirectly) you have to create
+a template database for dns2sqlite to use. This template database, an
+empty database with appropriate table and view definitions, is copied 
+by dns2sqlite whenever it creates a new "partition". Once created the
+template database does not change and may be set as read only.
+
+To create the template database file run:
+
+   sqlite3 <tabledefs.sql template_db_name
+
+The "template_db_name" is later given as a command line parameter or
+configuration option to dns2sqlite. The template database may be moved
+or copied to any location readable by the dns2sqlite process.
+
+
+Optional start/stop script
+
+A start/stop script, bin/dns2db.sh, with an associated configuration
+file, etc/dns2db.conf, is provided. Install the script by copying the
+etc/dns2db.conf file to /etc and the bin/dns2db.sh script to a suitable
+location. The script may be used stand-alone to start and stop dns2db
+or used as an init.d/rc-script.
+
+The basic installation is now done.
+
