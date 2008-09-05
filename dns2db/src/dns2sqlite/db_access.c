@@ -28,7 +28,43 @@
 
 #include "db_access.h"
 
-// === function implementations ================================================
+// === Local function prototypes ===============================================
+void
+split_dname3 (char **rdname3, ldns_rr *rr);
+
+// === Function implementations ================================================
+
+// --- split_dname3 ------------------------------------------------------------
+// Split a dname into three parts; tld, subdom, and host. Missing parts are
+// substituted by a single '.'.
+void
+split_dname3 (char **rdname3, ldns_rr *rr) {
+   ldns_rdf *rowner = NULL;
+   ldns_rdf *label = NULL;
+   ldns_rdf *tmp = NULL;
+   uint8_t n = 0;
+   uint8_t i = 0;
+   
+   rowner = ldns_dname_reverse (ldns_rr_owner (rr));
+   if (rowner == NULL) return;
+   
+   label = ldns_dname_label (rowner, 0);
+   n = ldns_dname_label_count (rowner);
+
+   tmp = rowner;
+   while (i < 2 && i <= n) {
+      rdname3 [i] = label == NULL ? strdup (".") : ldns_rdf2str (label);
+      if (label != NULL) {ldns_rdf_deep_free (label);}
+      tmp = ldns_dname_left_chop (rowner);
+      ldns_rdf_deep_free (rowner);
+      label = tmp == NULL ? NULL : ldns_dname_label (tmp, 0);
+      rowner = tmp;
+      i++;
+   }
+   rdname3 [2] = rowner == NULL ? strdup (".") : ldns_rdf2str (rowner);
+   ldns_rdf_deep_free (rowner);
+   if (label != NULL) {ldns_rdf_deep_free (label);}
+}
 
 // --- start_transaction -------------------------------------------------------
 int
@@ -499,6 +535,7 @@ insert_dns_rr (
    char *rr_tag
 ) {
    int rc;
+   char * rdname3 [] = {NULL, NULL, NULL};
    
    rc = sqlite3_reset (ps);
    if (rc != SQLITE_OK) {
@@ -536,72 +573,38 @@ insert_dns_rr (
       return FAILURE;
    }
 
-// -- Split Dname.
-// Hack to split a dname into into three parts; first level domain (tld), 
-// second level domain, and the remaining host part. This is done because
-// as of this writing Sqlite lack the string functions to do it in the database,
-// either for presentation or indexing.
-// This should be cleaned up and moved to a separate function.
-   int i = 0;
-   ldns_rdf *labels [] = {NULL, NULL};
-   ldns_rdf *owner = ldns_rr_owner (rr);
-   ldns_rdf *rev_owner = ldns_dname_reverse (owner);
-   ldns_rdf *rest = NULL;
-   uint8_t label_cnt = ldns_dname_label_count (owner);
-
-   while (i < 2 && label_cnt > 0) {
-      labels [i] = ldns_dname_label (owner, label_cnt -1);
-      --label_cnt;
-      ++i;
-   }
-
-   rest = rev_owner;
-   ldns_rdf *tmp = NULL;
-   while (i > 0) {
-      tmp = ldns_dname_left_chop (rest);
-      ldns_rdf_deep_free (rest);
-      rest = tmp;
-      --i;
-   }
-// -- Split Dname ends.   
+   split_dname3 (rdname3, rr);
    
-   char *lvl1dom = ldns_rdf2str (labels [0]);
-   char *lvl2dom = ldns_rdf2str (labels [1]);
-   char *restdom = ldns_rdf2str (rest);
-   ldns_rdf_deep_free (labels[0]);
-   ldns_rdf_deep_free (labels[1]);
-   ldns_rdf_deep_free (rest);
-   
-   rc = sqlite3_bind_text (ps, 5, lvl1dom, -1, SQLITE_TRANSIENT);
+   rc = sqlite3_bind_text (ps, 5, rdname3 [0], -1, SQLITE_TRANSIENT);
    if (rc != SQLITE_OK) {
       fprintf (stderr, "Could not bind value to parameter.\n");
-      XFREE(lvl1dom);
-      XFREE(lvl2dom);
-      XFREE(restdom);
+      XFREE(rdname3[0]);
+      XFREE(rdname3[1]);
+      XFREE(rdname3[2]);
       return FAILURE;
    }
 
-   rc = sqlite3_bind_text (ps, 6, lvl2dom, -1, SQLITE_TRANSIENT);
+   rc = sqlite3_bind_text (ps, 6, rdname3 [1], -1, SQLITE_TRANSIENT);
    if (rc != SQLITE_OK) {
       fprintf (stderr, "Could not bind value to parameter.\n");
-      XFREE(lvl1dom);
-      XFREE(lvl2dom);
-      XFREE(restdom);
+      XFREE(rdname3[0]);
+      XFREE(rdname3[1]);
+      XFREE(rdname3[2]);
       return FAILURE;
    }
 
-   rc = sqlite3_bind_text (ps, 7, restdom, -1, SQLITE_TRANSIENT);
+   rc = sqlite3_bind_text (ps, 7, rdname3 [2], -1, SQLITE_TRANSIENT);
    if (rc != SQLITE_OK) {
       fprintf (stderr, "Could not bind value to parameter.\n");
-      XFREE(lvl1dom);
-      XFREE(lvl2dom);
-      XFREE(restdom);
+      XFREE(rdname3[0]);
+      XFREE(rdname3[1]);
+      XFREE(rdname3[2]);
       return FAILURE;
    }
    
-   XFREE(lvl1dom);
-   XFREE(lvl2dom);
-   XFREE(restdom);
+   XFREE(rdname3[0]);
+   XFREE(rdname3[1]);
+   XFREE(rdname3[2]);
    
    rc = sqlite3_bind_int (ps, 8, ldns_rr_get_type (rr));
    if (rc != SQLITE_OK) {
