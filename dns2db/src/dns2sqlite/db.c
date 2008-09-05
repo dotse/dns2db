@@ -126,14 +126,17 @@ copy_file (char *from, char *to, bool_t overwrite) {
    
    if (ferror (f_fp) && ferror (t_fp)) {
       fprintf (stderr, "Failed both reading from %s and writing to %s.\n", from, to);
+      fprintf (stderr, "%s,%d,%s\n", __FILE__,__LINE__,strerror(errno));
       return FAILURE;
    }
    else if (ferror (f_fp)) {
       fprintf (stderr, "Failed while reading from %s.\n", from);
+      fprintf (stderr, "%s,%d,%s\n", __FILE__,__LINE__,strerror(errno));
       return FAILURE;
    }
    else if (ferror (t_fp)) {
       fprintf (stderr, "Failed while writing to %s.\n", to);
+      fprintf (stderr, "%s,%d,%s\n", __FILE__,__LINE__,strerror(errno));
       return FAILURE;
    }
    else {
