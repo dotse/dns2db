@@ -332,7 +332,6 @@ insert_trace (
    }
    
    *trace_id = sqlite3_last_insert_rowid (db);
-   
    return SUCCESS;
 }  
 
@@ -460,12 +459,12 @@ insert_dns_rr_data (
    sqlite_int64 trace_id, 
    uint16_t msg_id, 
    int rr_idx, 
+   char *rr_tag,
    int rd_idx, 
-   size_t rd_type, 
+   ldns_rdf_type rd_type, 
    char *rd_data
 ) {
    int rc;
-   
    rc = sqlite3_reset (ps);
    if (rc != SQLITE_OK) {
       fprintf (stderr, "Could not reset statement.\n");
@@ -496,19 +495,25 @@ insert_dns_rr_data (
       return FAILURE;
    }
    
-   rc = sqlite3_bind_int (ps, 4, rd_idx);
+   rc = sqlite3_bind_text (ps, 4, rr_tag, -1, SQLITE_TRANSIENT);
    if (rc != SQLITE_OK) {
       fprintf (stderr, "Could not bind value to parameter.\n");
       return FAILURE;
    }
    
-   rc = sqlite3_bind_int (ps, 5, rd_type);
+   rc = sqlite3_bind_int (ps, 5, rd_idx);
    if (rc != SQLITE_OK) {
       fprintf (stderr, "Could not bind value to parameter.\n");
       return FAILURE;
    }
    
-   rc = sqlite3_bind_text (ps, 6, rd_data, -1, SQLITE_TRANSIENT);
+   rc = sqlite3_bind_int (ps, 6, rd_type);
+   if (rc != SQLITE_OK) {
+      fprintf (stderr, "Could not bind value to parameter.\n");
+      return FAILURE;
+   }
+   
+   rc = sqlite3_bind_text (ps, 7, rd_data, -1, SQLITE_TRANSIENT);
    if (rc != SQLITE_OK) {
       fprintf (stderr, "Could not bind value to parameter.\n");
       return FAILURE;

@@ -36,7 +36,7 @@ static sql_stmt_t G_STMT [] = {
    {"INSERT INTO ADDR (addr) VALUES (:adr)", NULL},
    {"INSERT INTO DNS_HEADER VALUES (:tid,:mid,:qr,:aa,:tc,:rd,:cd,:ra,:ad,:oc,:rc,:qdc,:anc,:nsc,:arc)", NULL},
    {"INSERT INTO DNS_RR VALUES (:tid,:mid,:n,:rr,:lvl1,:lvl2,:rest,:rrt,:rrc,:ttl)", NULL},
-   {"INSERT INTO DNS_RR_DATA VALUES (:tid,:mid,:rri,:rdi,:rdt,:rd)", NULL},
+   {"INSERT INTO DNS_RR_DATA VALUES (:tid,:mid,:rri,:rrt,:rdi,:rdt,:rd)", NULL},
    {"SELECT ID FROM ADDR WHERE ADDR = :a", NULL}
 };
 #define NSTMT (sizeof G_STMT / sizeof G_STMT [0])
@@ -67,6 +67,7 @@ store_dns_rr_data (
    sqlite_int64 trace_id, 
    sqlite_int64 msg_id, 
    int n, 
+   char *rr_tag,
    int rdf_n,
    ldns_rdf *rdf
 );
@@ -223,16 +224,17 @@ store_dns_rr_data (
    sqlite_int64 trace_id, 
    sqlite_int64 msg_id, 
    int n, 
+   char *rr_tag,
    int rdf_n,
    ldns_rdf *rdf
 ) {
    ldns_rdf_type rdf_t; 
-   char * rdf_d;
+   char *rdf_d;
 
 
    rdf_d = ldns_rdf2str (rdf);
    rdf_t = ldns_rdf_get_type (rdf);
-   if (!insert_dns_rr_data ((s + I_DNS_RD)->pstmt, trace_id, msg_id, n, rdf_n, rdf_t, rdf_d)) {
+   if (!insert_dns_rr_data ((s + I_DNS_RD)->pstmt, trace_id, msg_id, n, rr_tag, rdf_n, rdf_t, rdf_d)) {
       fprintf (stderr, "Could not insert into dns_rr_data table\n");
       XFREE(rdf_d);
       return FAILURE;
@@ -271,7 +273,7 @@ store_dns_rr (
       // "Next relese" > ldns-1.3.0.
       for (unsigned int i = 0; i < ldns_rr_rd_count (rr); ++i) {
          rdf = rr->_rdata_fields [i];
-         if (!store_dns_rr_data (s, trace_id, msg_id, n, rdf_n++, rdf)) {
+         if (!store_dns_rr_data (s, trace_id, msg_id, n, rr_tag, rdf_n++, rdf)) {
             fprintf (stderr, "Failed to store RR data record.\n");
             return FAILURE;
          }
@@ -382,12 +384,6 @@ store_to_db (sqlite3 *db, sql_stmt_t *s, trace_t *t) {
    ldns_pkt *pdns_pkt;
    ldns_status ldns_rc;
    sqlite_int64 trace_id;
-   int rc;
-
-   // enhance sqlite performance at the expense of reliability.
-   rc = sqlite3_exec (db, "pragma synchronous = OFF", NULL, NULL, NULL);
-   rc = sqlite3_exec (db, "pragma temp_store = MEMORY", NULL, NULL, NULL);
-   rc = sqlite3_exec (db, "pragma journal_mode = OFF", NULL, NULL, NULL);
    
    if (!store_trace (db, s, t, &trace_id)) {
       fprintf (stderr, "Failed to store trace.\n");
@@ -446,6 +442,10 @@ open_db (char *filename, sqlite3 **db) {
       sqlite3_close (*db);
       return FAILURE;
    }
+   // enhance sqlite performance at the expense of reliability.
+   rc = sqlite3_exec (*db, "pragma synchronous = OFF", NULL, NULL, NULL);
+   rc = sqlite3_exec (*db, "pragma temp_store = MEMORY", NULL, NULL, NULL);
+   rc = sqlite3_exec (*db, "pragma journal_mode = OFF", NULL, NULL, NULL);
    
    return SUCCESS;
 }

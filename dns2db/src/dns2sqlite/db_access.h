@@ -110,8 +110,9 @@ insert_dns_rr_data (
    sqlite_int64 trace_id, //!< Trace ID corresponding to this DNS RR.
    uint16_t msg_id, //!< DNS message id.
    int rr_idx, //!< RR index.
+   char *rr_tag, //!< RR tag, "QD", "NS", "AR", "AN".
    int rd_idx, //!< RR data index.
-   size_t rd_type, //!< RR data type (from LDNS).
+   ldns_rdf_type rd_type, //!< RR data type (from LDNS).
    char *rd_data //!< RR data.
 );
 
