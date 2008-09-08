@@ -337,14 +337,14 @@ main (int argc, char *argv []) {
             XFREE(dt);
             
             if (!create_db (template, dt_filename, dbf_overwrite, &G_DB)) {
-               fprintf (stderr, "Failed to create new db.\n");
+               syslog (LOG_ERR|LOG_USER, "dns2sqlite: Failed to create new db.");
                XFREE(dt_filename); 
                exit (1);
             }
             XFREE(dt_filename);
          }
          if (!prepare_stmts (G_DB, &stmts)) {
-            fprintf (stderr, "Failed to prepare sql statements.\n");
+            syslog (LOG_ERR|LOG_USER, "dns2sqlite: Failed to prepare sql statements.\n");
             close_db (G_DB);
             exit (1);
          }
@@ -352,7 +352,7 @@ main (int argc, char *argv []) {
       }
 
       if (!store_to_db (G_DB, stmts, t)) {
-         fprintf (stderr, "Failed to store data to db.\n");
+         syslog (LOG_ERR|LOG_USER, "dns2sqlite: Failed to store data to db.\n");
       }
 
       trace_free (t);

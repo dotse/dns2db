@@ -73,19 +73,19 @@ start_transaction (sqlite3_stmt *ps) {
    
    rc = sqlite3_reset (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not reset statement.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not reset statement.");
       return FAILURE;
    }
    
    rc = sqlite3_clear_bindings (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not clear statement bindings.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not clear statement bindings.");
       return FAILURE;
    }
    
    rc = sqlite3_step (ps);
    if (rc != SQLITE_DONE) {
-      fprintf (stderr, "Could not start transaction.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not start transaction.");
       return FAILURE;
    }
    return SUCCESS;
@@ -98,19 +98,19 @@ commit (sqlite3_stmt *ps) {
    
    rc = sqlite3_reset (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not reset statement.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not reset statement.");
       return FAILURE;
    }
    
    rc = sqlite3_clear_bindings (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not clear statement bindings.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not clear statement bindings.");
       return FAILURE;
    }
    
    rc = sqlite3_step (ps);
    if (rc != SQLITE_DONE) {
-      fprintf (stderr, "Could not commit.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not commit.");
       return FAILURE;
    }
    return SUCCESS;
@@ -123,19 +123,19 @@ rollback (sqlite3_stmt *ps) {
    
    rc = sqlite3_reset (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not reset statement.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not reset statement.");
       return FAILURE;
    }
    
    rc = sqlite3_clear_bindings (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not clear statement bindings.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not clear statement bindings.");
       return FAILURE;
    }
    
    rc = sqlite3_step (ps);
    if (rc != SQLITE_DONE) {
-      fprintf (stderr, "Could not rollback.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not rollback.");
       return FAILURE;
    }
    return SUCCESS;
@@ -149,19 +149,19 @@ get_addr_id (sqlite3_stmt *ps, char *addr, int *rows, sqlite_int64 *addr_id) {
    
    rc = sqlite3_reset (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not reset statement.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not reset statement.");
       return FAILURE;
    }
    
    rc = sqlite3_clear_bindings (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not clear statement bindings.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not clear statement bindings.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_text (ps, 1, addr, -1, SQLITE_TRANSIENT);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
@@ -188,37 +188,37 @@ insert_unhandled_packet (
    
    rc = sqlite3_reset (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not reset statement.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not reset statement.");
       return FAILURE;
    }
    
    rc = sqlite3_clear_bindings (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not clear statement bindings.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not clear statement bindings.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int64 (ps, 1, tid);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_blob (ps, 2, t, sizeof (*t), SQLITE_TRANSIENT);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_text (ps, 3, reason, -1, SQLITE_TRANSIENT);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_step (ps);
    if (rc != SQLITE_DONE) {
-      fprintf (stderr, "Could not insert data in table 'unhandled_packet'.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not insert data in table 'unhandled_packet'.");
       return FAILURE;
    }
    
@@ -232,25 +232,25 @@ insert_addr (sqlite3 *db, sqlite3_stmt *ps, char *addr, sqlite_int64 *addr_id) {
    
    rc = sqlite3_reset (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not reset statement.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not reset statement.");
       return FAILURE;
    }
    
    rc = sqlite3_clear_bindings (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not clear statement bindings.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not clear statement bindings.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_text (ps, 1, addr, -1, SQLITE_TRANSIENT);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_step (ps);
    if (rc != SQLITE_DONE) {
-      fprintf (stderr, "Could not insert data in table 'addr'.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not insert data in table 'addr'.");
       return FAILURE;
    }
    
@@ -273,61 +273,61 @@ insert_trace (
    
    rc = sqlite3_reset (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not reset statement.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not reset statement.");
       return FAILURE;
    }
    
    rc = sqlite3_clear_bindings (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not clear statement bindings.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not clear statement bindings.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 1, trace_get_seconds (t));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 2, trace_get_micro_seconds (t));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 3, trace_get_ethertype (t));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 4, trace_get_protocol (t));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int64 (ps, 5, src_addr_id);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int64 (ps, 6, dst_addr_id);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 7, trace_get_port (t)); 
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_step (ps);
    if (rc != SQLITE_DONE) {
-      fprintf (stderr, "Could not insert data in table 'trace (%d)'.\n", rc);
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not insert data in table 'trace (%d)'.", rc);
       return FAILURE;
    }
    
@@ -343,109 +343,109 @@ insert_dns_header (sqlite3_stmt *ps, sqlite_int64 trace_id, ldns_pkt *pdns) {
    
    rc = sqlite3_reset (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not reset statement.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not reset statement.");
       return FAILURE;
    }
    
    rc = sqlite3_clear_bindings (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not clear statement bindings.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not clear statement bindings.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int64 (ps, 1, trace_id);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 2, ldns_pkt_id (pdns));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 3, ldns_pkt_qr (pdns)); 
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 4, ldns_pkt_aa (pdns));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 5, ldns_pkt_tc (pdns));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 6, ldns_pkt_rd (pdns));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 7, ldns_pkt_cd (pdns));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 8, ldns_pkt_ra (pdns));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 9, ldns_pkt_ad (pdns));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 10, ldns_pkt_get_opcode (pdns));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 11, ldns_pkt_get_rcode (pdns));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 12, ldns_pkt_qdcount (pdns));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 13, ldns_pkt_ancount (pdns));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 14, ldns_pkt_nscount (pdns));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 15, ldns_pkt_arcount (pdns));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_step (ps);
    if (rc != SQLITE_DONE) {
-      fprintf (stderr, "Could not insert data in table 'dns_header (%d)'.\n", rc);
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not insert data in table 'dns_header (%d)'.", rc);
       return FAILURE;
    }
    
@@ -467,61 +467,61 @@ insert_dns_rr_data (
    int rc;
    rc = sqlite3_reset (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not reset statement.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not reset statement.");
       return FAILURE;
    }
    
    rc = sqlite3_clear_bindings (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not clear statement bindings.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not clear statement bindings.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int64 (ps, 1, trace_id);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 2, msg_id);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 3, rr_idx);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_text (ps, 4, rr_tag, -1, SQLITE_TRANSIENT);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 5, rd_idx);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 6, rd_type);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_text (ps, 7, rd_data, -1, SQLITE_TRANSIENT);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_step (ps);
    if (rc != SQLITE_DONE) {
-      fprintf (stderr, "Could not insert data in table 'dns_rr_data (%d)'.\n", rc);
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not insert data in table 'dns_rr_data (%d)'.", rc);
       return FAILURE;
    }
    
@@ -544,37 +544,37 @@ insert_dns_rr (
    
    rc = sqlite3_reset (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not reset statement.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not reset statement.");
       return FAILURE;
    }
    
    rc = sqlite3_clear_bindings (ps);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not clear statement bindings.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not clear statement bindings.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int64 (ps, 1, trace_id);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 2, msg_id);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 3, n);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_text (ps, 4, rr_tag, -1, SQLITE_TRANSIENT);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
 
@@ -582,7 +582,7 @@ insert_dns_rr (
    
    rc = sqlite3_bind_text (ps, 5, rdname3 [0], -1, SQLITE_TRANSIENT);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       XFREE(rdname3[0]);
       XFREE(rdname3[1]);
       XFREE(rdname3[2]);
@@ -591,7 +591,7 @@ insert_dns_rr (
 
    rc = sqlite3_bind_text (ps, 6, rdname3 [1], -1, SQLITE_TRANSIENT);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       XFREE(rdname3[0]);
       XFREE(rdname3[1]);
       XFREE(rdname3[2]);
@@ -600,7 +600,7 @@ insert_dns_rr (
 
    rc = sqlite3_bind_text (ps, 7, rdname3 [2], -1, SQLITE_TRANSIENT);
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       XFREE(rdname3[0]);
       XFREE(rdname3[1]);
       XFREE(rdname3[2]);
@@ -613,19 +613,19 @@ insert_dns_rr (
    
    rc = sqlite3_bind_int (ps, 8, ldns_rr_get_type (rr));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 9, ldns_rr_get_class (rr));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    
    rc = sqlite3_bind_int (ps, 10, ldns_rr_ttl (rr));
    if (rc != SQLITE_OK) {
-      fprintf (stderr, "Could not bind value to parameter.\n");
+      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not bind value to parameter.");
       return FAILURE;
    }
    

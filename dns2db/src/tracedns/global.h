@@ -43,6 +43,9 @@
    #error "Can not find libtrace header, libtrace.h"
 #endif
 
+#include <syslog.h>
+#include <stdarg.h>
+
 #ifndef TRACEDNS_VERSION
 #define TRACEDNS_VERSION "TRACEDNS 2.0"
 #endif

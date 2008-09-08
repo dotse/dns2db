@@ -34,6 +34,8 @@
 #include <ldns/ldns.h>
 #include <regex.h>
 #include <sys/errno.h>
+#include <syslog.h>
+#include <stdarg.h>
 #include "trace_data.h"
 
 typedef enum Bool {FALSE, TRUE} bool_t;
