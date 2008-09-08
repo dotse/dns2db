@@ -123,10 +123,11 @@ create table dns_rr_data (
    trace_id integer,
    msg_id integer,
    rr_n integer,
+   rr_tag text,
    rdf_n integer,
    rdf_type integer,
    rdf_data text,
-   primary key (trace_id, msg_id, rr_n, rdf_n)
+   primary key (trace_id, msg_id, rr_n, rr_tag, rdf_n)
 );
 ----------------------------
 --- Lookup tables and views.
