@@ -45,9 +45,9 @@ sstart() {
   sstatus
   if [ $? -ne 0 ]; then
     TRACEDNS_PARAMETERS=
-    if [ "${PROMISCUOUS}" == "Y" ]; then
-      llogger "Using PROMISCUOUS"
-      TRACEDNS_PARAMETERS=-p
+    if [ "${PROMISCUOUS}" == "N" ]; then
+      llogger "PROMISCUOUS mode disabled"
+      TRACEDNS_PARAMETERS=-p0
     fi
 
     DNS2SQLITE_PARAMETERS=
@@ -77,7 +77,7 @@ sstart() {
     llogger "tracedns ${TRACEDNS_PARAMETERS} -s ${SNAPLEN} -f ${FILTER} ${TRACE_SRCS}"
     llogger "dns2sqlite ${DNS2SQLITE_PARAMETERS} -t ${TEMPLATEDB} -d ${DATABASE} -f ${DBLOCATION} -i ${PARTITION_INTERVAL}"
 
-    nohup tracedns ${TRACEDNS_PARAMETERS} -s ${SNAPLEN} -f "${FILTER}" ${TRACE_SRCS} | dns2sqlite ${DNS2SQLITE_PARAMETERS} -t ${TEMPLATEDB} -d ${DATABASE} -f ${DBLOCATION} -i ${PARTITION_INTERVAL} | logger -i -t DNS2DB 2>&1 &
+    nohup tracedns ${TRACEDNS_PARAMETERS} -s ${SNAPLEN} -f "${FILTER}" ${TRACE_SRCS} | dns2sqlite ${DNS2SQLITE_PARAMETERS} -t ${TEMPLATEDB} -d ${DATABASE} -f ${DBLOCATION} -i ${PARTITION_INTERVAL} &
 
     sleep 3
     ps | grep [d]ns2sqlite | awk '{print $1}' > ${DNS2DB_PIDFILE}
