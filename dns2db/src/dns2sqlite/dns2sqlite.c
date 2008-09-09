@@ -34,7 +34,7 @@ void
 usage (char *argv0);
 
 char *
-sec_to_datetime_str (long s);
+sec_to_datetime_str (unsigned long s);
 
 char *
 make_dt_filename (char *dt, char *filename);
@@ -58,13 +58,15 @@ make_db_dir (char *dt, char *dir);
 
 // --- sec_to_datetime_str -----------------------------------------------------
 char *
-sec_to_datetime_str (long s) {
-   char *dt = (char *) calloc (1, strlen ("YYYYMMDDHHMISS") + 1);
+sec_to_datetime_str (unsigned long s) {
+   const unsigned short dt_len = strlen ("YYYYMMDDHHMI") + 1;
+   const time_t t = s; //N.B. time_t may be int or real. Use conversion, not casting!
+   char *dt = (char *) calloc (1, dt_len);
    if (dt == NULL) {
       return NULL;
    }
 
-   if (strftime (dt, 15, "%Y%m%d%H%M", gmtime (&s))) {
+   if (strftime (dt, dt_len, "%Y%m%d%H%M", gmtime (&t))) {
       return dt;
    }
    else {
