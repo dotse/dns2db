@@ -30,29 +30,68 @@
 static sqlite3 *G_DB = NULL;
 
 // === Local function prototypes ===============================================
+/** Print command line usage string.
+ */
 void
-usage (char *argv0);
+usage (
+   char *argv0 //!< argv [0].
+);
 
+/** Convert seconds since the Unix epoch to a YYYYMMDDHHMI-string.
+ */
 char *
-sec_to_datetime_str (unsigned long s);
+sec_to_datetime_str (
+   unsigned long s //!< Seconds since Unix epoch.
+);
 
+/** Append a datetime string to a filename.
+ */
 char *
-make_dt_filename (char *dt, char *filename);
+make_dt_filename (
+   char *dt, //!< A datetime string (as returned from sec_to_datetime_str()).
+   char *filename //!< A filename as a string.
+);
 
+/** Make a string representing a directory name from a datetime string.
+ */
 char *
-make_db_dir_name (char *fn);
+make_db_dir_name (
+   char *dt //!< A datetime string (as returned from sec_to_datetime_str())
+);
 
+/** Make a string representing the full path to a directory for database files.
+ */
 char *
-make_full_db_path (char *folder, char *db_dir_name);
+make_full_db_path (
+   char *folder, //!< Complete path to base directory.
+   char *db_dir_name //!< Subdir within the base directory.
+);
 
+/** Split a day into intervals of size "interval" seconds and return the start
+ * of the interval, counted from the Unix epoch, in which "secs" occur.
+ */
 unsigned long
-interval_start (unsigned long secs, unsigned long interval);
+interval_start (
+   unsigned long secs, //!< Seconds since Unix epoch.
+   unsigned long interval //!< Interval size in seconds.
+);
 
+/** Start of the next database "partition".
+ */
 unsigned long
-p_start (unsigned long ps, unsigned long s, unsigned long pi);
+p_start (
+   unsigned long ps, //!< Previous partition start time (in seconds of the day).
+   unsigned long s, //!< Seconds since the Unix epoch.
+   unsigned long pi //!< Partition interval size in seconds.
+);
 
+/** Create a directory.
+ */
 int
-make_db_dir (char *dt, char *dir);
+make_db_dir (
+   char *dt, //!< A datetime string (as returned by sec_to_datetime_str).
+   char *dir //!< String representing the complete path to a base directory. 
+);
 
 // === Function implementations ================================================
 
@@ -94,16 +133,16 @@ make_dt_filename (char *dt, char *filename) {
    return dt_f;
 }
 
-// --- make_db_dir -------------------------------------------------------------
+// --- make_db_dir_name---------------------------------------------------------
 char *
-make_db_dir_name (char *fn) {
+make_db_dir_name (char *dt) {
    const unsigned char d_len = strlen ("YYYYMMDD");
    char *d = (char *) calloc (1, d_len + 1);
    if (d == NULL) {
       return NULL;
    }
 
-   strncpy (d, fn, d_len);
+   strncpy (d, dt, d_len);
    return d;
 }
 
@@ -130,9 +169,7 @@ make_full_db_path (char *folder, char *db_dir_name) {
    return full_path;
 }
 
-// --- partition_start ---------------------------------------------------------
-// split a day into intervals of size "interval" seconds and return the start
-// of the interval, counted from the Unix epoch, in which "secs" occur.
+// --- interval_start ---------------------------------------------------------
 // N.B. interger arithmetic being used! 
 unsigned long
 interval_start (unsigned long secs, unsigned long interval) {
@@ -167,8 +204,7 @@ make_db_dir (char *dt, char *dir) {
       return FAILURE;
    }
    XFREE(db_dir_name);
-   // only need to create dir when it does not exist! Add check for that
-   // or try to create and handle the error if it exists.
+
    rc = mkdir (full_path, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
    if (rc == -1 && errno != EEXIST) {
       perror (NULL);
@@ -300,7 +336,7 @@ main (int argc, char *argv []) {
    }
 
    // main loop
-   // This should definately be refactored into several small functions!
+   // This should at least be moved into its own function.
    while ((t = parse_line (fp)) != NULL) {
       partition_start = p_start (partition_start, t->s, partition_interval);
 
@@ -329,8 +365,6 @@ main (int argc, char *argv []) {
                return FAILURE;
             }
             
-            // check if db_dir_name is set. If not, set the filename and the db_dir_name.
-            // should this be done here or after "if (!isdbopen ...)" below?
                if (make_db_dir (dt, folder) != SUCCESS) {
                   XFREE(dt);
                   XFREE(dt_filename);
