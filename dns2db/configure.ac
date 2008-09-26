@@ -2,11 +2,22 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT(dns2db, 1.0, bugs@iis.se)
+AC_INIT([DNS2db], [2.0], [bugs@iis.se], [DNS2db])
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADER([config.h])
-AM_INIT_AUTOMAKE(tracedns,1.0)
-AM_INIT_AUTOMAKE(dns2sqlite,1.0)
+AC_CANONICAL_TARGET
+#AM_INIT_AUTOMAKE(tracedns,2.0)
+#AM_INIT_AUTOMAKE(dns2sqlite,2.0)
+#AM_INIT_AUTOMAKE(DNS2db,2.0)
+AM_INIT_AUTOMAKE
+
+# Platform-specific tweaks
+case $target in
+*openbsd*)
+    CFLAGS="$CFLAGS -I/usr/local/include"
+    CPPFLAGS="$CPPFLAGS -I/usr/local/include"
+    LIBS="$LIBS -L/usr/local/lib/";;
+esac
 
 # Checks for programs.
 AC_PROG_CC_C99
