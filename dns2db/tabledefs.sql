@@ -146,7 +146,8 @@ as
       restdom || lvl2dom || lvl1dom as Qname,
       Opcode,
       Rd,
-      Opt_RR
+      Opt_RR,
+      lvl2dom || lvl1dom as E1
    from trace t
    join addr a on (t.src_addr = a.id)
    join (
