@@ -143,11 +143,11 @@ as
       rr_type as Qtype,
       rr_class as Qclass,
       msglen,
-      restdom || lvl2dom || lvl1dom as Qname,
+      rtrim (restdom || lvl2dom || lvl1dom, '.') as Qname,
       Opcode,
       Rd,
       Opt_RR,
-      lvl2dom || lvl1dom as E1
+      rtrim (lvl2dom || lvl1dom, '.') as E1
    from trace t
    join addr a on (t.src_addr = a.id)
    join (
