@@ -200,7 +200,11 @@ tcp_add_segment (tcp_stream_t *st, libtrace_tcp_t *tcp, uint32_t *rest) {
    uint8_t *p;
    size_t len = *rest - tcp->doff * 4;
 
-   if (len == 0) {
+   // check for no packet data or a truncated header with no data. The later
+   // will be negative if size_t is signed and greater than 64K if size_t is
+   // unsigned. 64K is the maximum size of a single tcp segment according to
+   // the TCP specification.
+   if (len <= 0 || len > 65535) {
       return;
    }
 
