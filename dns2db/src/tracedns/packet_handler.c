@@ -69,7 +69,8 @@ get_seg_payload (
    void *seg,
    uint32_t *rest, // bytes after IP header remaining in seg, i.e the size of the IP payload.
    in6addr_t *src_ip,
-   in6addr_t *dst_ip
+   in6addr_t *dst_ip,
+   uint16_t *src_port
 );
 
 // === Function implementations ================================================
@@ -219,19 +220,24 @@ get_seg_payload (
    void *seg,
    uint32_t *rest, // bytes after IP header remaining in seg, i.e the size of the IP payload.
    in6addr_t *src_ip,
-   in6addr_t *dst_ip
+   in6addr_t *dst_ip,
+   uint16_t *src_port
 ) {
    uint8_t *p = NULL;
+   libtrace_udp_t *udp = NULL;
    libtrace_tcp_t *tcp = NULL;
    tcp_stream_t *st = NULL;
    
    p = NULL;
    switch (proto) {
       case IPPROTO_UDP:
-         p = get_udp ((libtrace_udp_t *) seg, rest);
+         udp = (libtrace_udp_t *) seg;
+         *src_port = udp->source;
+         p = get_udp (udp, rest);
       break;
       case IPPROTO_TCP:
          tcp = (libtrace_tcp_t *) seg;
+         *src_port = tcp->source;
          st = tcp_lookup (src_ip, dst_ip, tcp->source, tcp->dest);
          st = build_tcp_stream (src_ip, dst_ip, tcp, st, rest);
          // get the assembled TCP packet and remove the individual segments.
@@ -278,7 +284,7 @@ per_packet (libtrace_packet_t *packet) {
       return;
    }
    
-   p = get_seg_payload (proto, seg, &rest, &src_ip, &dst_ip);
+   p = get_seg_payload (proto, seg, &rest, &src_ip, &dst_ip, &src_port);
    if (p == NULL) {
       return;
    }
