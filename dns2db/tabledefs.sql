@@ -135,7 +135,7 @@ create table dns_rr_data (
 create view q
 as
    select t.id as id,
-      t.s as s,
+      t.s as ts,
       d.msg_id as msg_id,
       0 as Client_num,
       a.addr as Client,
