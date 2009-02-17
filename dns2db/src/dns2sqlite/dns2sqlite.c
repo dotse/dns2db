@@ -141,6 +141,7 @@ make_db_dir_name (char *dt) {
    if (d == NULL) {
       return NULL;
    }
+   d[d_len]=0; /* nullterminate - pg */
 
    strncpy (d, dt, d_len);
    return d;
