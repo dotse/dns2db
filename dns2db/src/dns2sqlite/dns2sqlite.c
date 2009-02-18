@@ -29,6 +29,22 @@
 
 static sqlite3 *G_DB = NULL;
 
+
+// === Log function ============================================================
+void    d2log(int fp, const char *fmt, ...)
+{
+    char *str,*strp;
+    va_list ap;
+    
+    va_start(ap,fmt);
+    vsyslog(fp,fmt,ap);
+    vfprintf(stderr,fmt,ap);
+    fprintf(stderr,"\n");
+    
+    va_end(ap);
+}
+
+
 // === Local function prototypes ===============================================
 /** Print command line usage string.
  */
@@ -118,6 +134,9 @@ sec_to_datetime_str (unsigned long s) {
 // --- make_dt_filename --------------------------------------------------------
 char *
 make_dt_filename (char *dt, char *filename) {
+   if (dt == NULL || filename == NULL)
+      return NULL;
+	
    int fn_len = strlen (filename);
    int dt_len = strlen (dt);
    int dt_flen = fn_len + dt_len;
@@ -141,7 +160,6 @@ make_db_dir_name (char *dt) {
    if (d == NULL) {
       return NULL;
    }
-   d[d_len]=0; /* nullterminate - pg */
 
    strncpy (d, dt, d_len);
    return d;
@@ -153,7 +171,7 @@ make_full_db_path (char *folder, char *db_dir_name) {
    unsigned int f_len = strlen (folder);
    unsigned int d_len = strlen (db_dir_name);
    
-   char *full_path = (char *) calloc (1, f_len + d_len + 1);
+   char *full_path = (char *) calloc (1, f_len + d_len + 2);
    if (full_path == NULL) {
       return NULL;
    }
@@ -200,11 +218,10 @@ make_db_dir (char *dt, char *dir) {
    }
    
    full_path = make_full_db_path (dir, db_dir_name);
+   XFREE(db_dir_name);
    if (full_path == NULL) {
-      XFREE(db_dir_name);
       return FAILURE;
    }
-   XFREE(db_dir_name);
 
    rc = mkdir (full_path, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
    if (rc == -1 && errno != EEXIST) {
@@ -234,7 +251,7 @@ usage (char *argv0) {
 
 // --- main --------------------------------------------------------------------
 int 
-main (int argc, char *argv []) {
+mainloop (int argc, char *argv []) {
    FILE *fp = NULL;
    sql_stmt_t *stmts = NULL;
    trace_t *t = NULL;
@@ -265,6 +282,7 @@ main (int argc, char *argv []) {
       {"db_folder", required_argument, NULL, 'f'},
       { NULL, 0, NULL, 0 }
    };
+   
 
    while ((c = getopt_long (argc, argv, "hvt:qrd:n:oi:f:", long_opts, &opt_idx)) != -1) {
       switch (c) {
@@ -302,6 +320,8 @@ main (int argc, char *argv []) {
             return 0;
       }
    }
+
+
    argc -= optind;
    argv += optind;
 
@@ -335,6 +355,11 @@ main (int argc, char *argv []) {
          usage (argv [0]);
          return 1;
    }
+   
+   if (filename == NULL) {
+   	  fprintf (stderr, "Error: No database specified \n");
+   }
+   
 
    // main loop
    // This should at least be moved into its own function.
@@ -366,30 +391,40 @@ main (int argc, char *argv []) {
                return FAILURE;
             }
             
-               if (make_db_dir (dt, folder) != SUCCESS) {
-                  XFREE(dt);
-                  XFREE(dt_filename);
-                  return FAILURE;
-               }
+            FILE * template_file = fopen(template,"rb");
+            if (template_file == NULL) {
+                d2log (LOG_ERR|LOG_USER, "Failed to open database template %s",template);
+                XFREE(dt);
+                XFREE(dt_filename);
+                return FAILURE;
+            }
+
+            
+       		if (make_db_dir (dt, folder) != SUCCESS) {
+            	XFREE(dt);
+                XFREE(dt_filename);
+                return FAILURE;
+            }
             XFREE(dt);
             
-            if (!create_db (template, dt_filename, dbf_overwrite, &G_DB)) {
-               syslog (LOG_ERR|LOG_USER, "dns2sqlite: Failed to create new db.");
+            
+            if (!create_db (template_file, template, dt_filename, dbf_overwrite, &G_DB)) {
+               d2log (LOG_ERR|LOG_USER, "Failed to create new db.");
                XFREE(dt_filename); 
-               exit (1);
+               return FAILURE;
             }
             XFREE(dt_filename);
          }
          if (!prepare_stmts (G_DB, &stmts)) {
-            syslog (LOG_ERR|LOG_USER, "dns2sqlite: Failed to prepare sql statements.\n");
+            d2log (LOG_ERR|LOG_USER, "Failed to prepare sql statements.\n");
             close_db (G_DB);
-            exit (1);
-         }
+            return FAILURE;
+        }
          rc = start_transaction ((stmts + BEGIN_TRANS)->pstmt);
       }
 
       if (!store_to_db (G_DB, stmts, t)) {
-         syslog (LOG_ERR|LOG_USER, "dns2sqlite: Failed to store data to db.\n");
+         d2log (LOG_ERR|LOG_USER, "Failed to store data to db.\n");
       }
 
       trace_free (t);
@@ -399,5 +434,18 @@ main (int argc, char *argv []) {
    fclose (fp);
    rc = commit ((stmts + COMMIT)->pstmt);
    close_db (G_DB);
-   exit (0);
+}
+
+
+int 
+main (int argc, char *argv []) {
+
+   openlog("dns2sqlite",LOG_PID,LOG_USER);  // open d2log
+//   d2log (LOG_ERR|LOG_USER, "Starting dns2sqlite\n");
+
+   int res = mainloop(argc,argv);
+   
+//   d2log (LOG_ERR|LOG_USER, "Exiting dns2sqlite\n");
+   closelog();
+   exit (res);
 }

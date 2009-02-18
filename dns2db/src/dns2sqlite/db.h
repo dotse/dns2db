@@ -63,7 +63,7 @@ open_db (char *filename, sqlite3 **db);
 /** Create a new database with "filename" from the given template.
  */
 int
-create_db (char *template, char *filename, bool_t overwrite, sqlite3 **db);
+create_db (FILE *template_file, char *template, char *filename, bool_t overwrite, sqlite3 **db);
 
 /** Prepare the SQL statements in "s" to be used with the database instance
  * pointed to by "db".
@@ -86,6 +86,6 @@ store_to_db (sqlite3 *db, sql_stmt_t *ps, trace_t *ptd);
 /** Create a new database from a given template.
  */
 int
-create_db_from_template (char *template, char *filename, bool_t overwrite, sqlite3 **db);
+create_db_from_template (FILE *template_file, char *template, char *filename, bool_t overwrite, sqlite3 **db);
 
 #endif

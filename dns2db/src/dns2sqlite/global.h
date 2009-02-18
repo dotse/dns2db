@@ -41,6 +41,8 @@
 typedef enum Bool {FALSE, TRUE} bool_t;
 typedef enum Exit_status {FAILURE, SUCCESS} exit_status_t;
 
+void    d2log(int, const char *, ...);
+
 // A safer free. The do ... while () without an ending ';' is there to force
 // the use of ';' in the code. Using do ... while (FALSE) ensure that the 
 // statment is executed exactly once.

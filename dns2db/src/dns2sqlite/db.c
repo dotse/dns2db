@@ -47,7 +47,7 @@ static sql_stmt_t G_STMT [] = {
  *  existing destination file.
  */
 int
-copy_file (char *from, char *to, bool_t overwrite);
+copy_file (FILE *from_file, char *from, char *to, bool_t overwrite);
 
 /** Finalize prepared statements.
  */
@@ -112,9 +112,8 @@ store_trace (sqlite3 *db, sql_stmt_t *s, trace_t *t, sqlite_int64 *trace_id);
 
 // --- copy_file ---------------------------------------------------------------
 int
-copy_file (char *from, char *to, bool_t overwrite) {
+copy_file (FILE *f_fp, char *from, char *to, bool_t overwrite) {
    int c;
-   FILE *f_fp;
    FILE *t_fp;
    
    // check if destination file exists and if it is ok to overwrite it.
@@ -127,10 +126,6 @@ copy_file (char *from, char *to, bool_t overwrite) {
       }
    } 
          
-   if ((f_fp = fopen (from, "rb")) == NULL) {
-      perror (from);
-      return FAILURE;
-   }
    
    if ((t_fp = fopen (to, "wb")) == NULL) {
       perror (to);
@@ -147,18 +142,18 @@ copy_file (char *from, char *to, bool_t overwrite) {
    fclose (t_fp);
    
    if (ferror (f_fp) && ferror (t_fp)) {
-      syslog (
+      d2log (
          LOG_ERR|LOG_USER, 
-         "dns2sqlite: Failed both reading from %s and writing to %s. Error: %s", from, to, strerror (errno)
+         "Failed both reading from %s and writing to %s. Error: %s", from, to, strerror (errno)
       );
       return FAILURE;
    }
    else if (ferror (f_fp)) {
-      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Failed while reading from %s. Error: %s", from, strerror (errno));
+      d2log (LOG_ERR|LOG_USER, "Failed while reading from %s. Error: %s", from, strerror (errno));
       return FAILURE;
    }
    else if (ferror (t_fp)) {
-      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Failed while writing to %s.", to, strerror (errno));
+      d2log (LOG_ERR|LOG_USER, "Failed while writing to %s.", to, strerror (errno));
       return FAILURE;
    }
    else {
@@ -180,7 +175,7 @@ prepare_stmts (sqlite3 *db, sql_stmt_t **base) {
       rc  = sqlite3_prepare_v2 (db, s->sql, strlen (s->sql), &s->pstmt, &tail);
       
       if (rc != SQLITE_OK) {
-         syslog (LOG_ERR|LOG_USER, "dns2sqlite: Unable to prepare statement: %s", s->sql);
+         d2log (LOG_ERR|LOG_USER, "Unable to prepare statement: %s", s->sql);
          return FAILURE;
       }
    }
@@ -197,7 +192,7 @@ finalize_stmts (sql_stmt_t *s) {
       rc = sqlite3_finalize (s->pstmt);
       
       if (rc != SQLITE_OK) {
-         syslog (LOG_ERR|LOG_USER, "dns2sqlite: Unable to finalize prepared statement: %s", s->sql);
+         d2log (LOG_ERR|LOG_USER, "Unable to finalize prepared statement: %s", s->sql);
          return FAILURE;
       }
    }
@@ -210,7 +205,7 @@ int
 store_unhandled_packet (sql_stmt_t *s, sqlite_int64 trace_id, trace_t *t, char *reason) {
    
    if (!insert_unhandled_packet ((s + I_UNHAND)->pstmt, trace_id, t, reason)) {
-      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not insert into unhandled_packet table");
+      d2log (LOG_ERR|LOG_USER, "Could not insert into unhandled_packet table");
       return FAILURE;
    }
    return SUCCESS;
@@ -235,7 +230,7 @@ store_dns_rr_data (
    rdf_d = ldns_rdf2str (rdf);
    rdf_t = ldns_rdf_get_type (rdf);
    if (!insert_dns_rr_data ((s + I_DNS_RD)->pstmt, trace_id, msg_id, n, rr_tag, rdf_n, rdf_t, rdf_d)) {
-      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not insert into dns_rr_data table");
+      d2log (LOG_ERR|LOG_USER, "Could not insert into dns_rr_data table");
       XFREE(rdf_d);
       return FAILURE;
    }
@@ -260,7 +255,7 @@ store_dns_rr (
 
 
    if (!insert_dns_rr ((s + I_DNS_RR)->pstmt, trace_id, msg_id, rr, n, rr_tag)) {
-      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Failed to store RR.");
+      d2log (LOG_ERR|LOG_USER, "Failed to store RR.");
       return FAILURE;
    } 
    else {
@@ -274,7 +269,7 @@ store_dns_rr (
       for (unsigned int i = 0; i < ldns_rr_rd_count (rr); ++i) {
          rdf = rr->_rdata_fields [i];
          if (!store_dns_rr_data (s, trace_id, msg_id, n, rr_tag, rdf_n++, rdf)) {
-            syslog (LOG_ERR|LOG_USER, "dns2sqlite: Failed to store RR data record.");
+            d2log (LOG_ERR|LOG_USER, "Failed to store RR data record.");
             return FAILURE;
          }
       }
@@ -299,7 +294,7 @@ store_dns_rr_list (
 
    while ((rr = ldns_rr_list_pop_rr (rr_list)) != NULL) {
       if (!store_dns_rr (s, trace_id, msg_id, n++, rr_tag, rr)) {
-         syslog (LOG_ERR|LOG_USER, "dns2sqlite: Failed to store a %s RR", rr_tag);
+         d2log (LOG_ERR|LOG_USER, "Failed to store a %s RR", rr_tag);
          return FAILURE;
       }
       ldns_rr_free(rr);
@@ -315,21 +310,21 @@ store_dns_packet (sql_stmt_t *s, sqlite_int64 trace_id, ldns_pkt *pdns) {
    
 
    if (!insert_dns_header ((s + I_DNS_H)->pstmt, trace_id, pdns)) {
-      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Failed to store DNS header.");
+      d2log (LOG_ERR|LOG_USER, "Failed to store DNS header.");
       return FAILURE;
    }
    else {
       if (!store_dns_rr_list (s, trace_id, msgid, "QD", ldns_pkt_question (pdns))) {
-         syslog (LOG_WARNING|LOG_USER, "dns2sqlite: Warning: could not store complete question section.");
+         d2log (LOG_WARNING|LOG_USER, "Warning: could not store complete question section.");
       }
       if (!store_dns_rr_list (s, trace_id, msgid, "NS", ldns_pkt_answer (pdns))) {
-         syslog (LOG_WARNING|LOG_USER, "dns2sqlite: Warning: could not store complete answer section.");
+         d2log (LOG_WARNING|LOG_USER, "Warning: could not store complete answer section.");
       }
       if (!store_dns_rr_list (s, trace_id, msgid, "AR", ldns_pkt_authority (pdns))) {
-         syslog (LOG_WARNING|LOG_USER, "dns2sqlite: Warning: could not store complete authority section.");
+         d2log (LOG_WARNING|LOG_USER, "Warning: could not store complete authority section.");
       }
       if (!store_dns_rr_list (s, trace_id, msgid, "AN", ldns_pkt_additional (pdns))) {
-         syslog (LOG_WARNING|LOG_USER, "dns2sqlite: Warning: could not store complete additional section");
+         d2log (LOG_WARNING|LOG_USER, "Warning: could not store complete additional section");
       }
    }
    return SUCCESS;
@@ -346,32 +341,32 @@ store_trace (sqlite3 *db, sql_stmt_t *s, trace_t *t, sqlite_int64 *trace_id) {
 
    if (!get_addr_id ((s + S_ADDR_ID)->pstmt, trace_get_src_addr (t), &rows, &src_addr_id)) {
       // Technical failure (failed in some other way than not finding an id)
-      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Failed to get address id for %s", trace_get_src_addr (t));
+      d2log (LOG_ERR|LOG_USER, "Failed to get address id for %s", trace_get_src_addr (t));
       return FAILURE;
    }
 
    if (rows == 0) { // no address found, so insert it
       if (!insert_addr (db, (s + I_ADDR)->pstmt, trace_get_src_addr (t), &src_addr_id)) {
-         syslog (LOG_ERR|LOG_USER, "dns2sqlite: Failed to insert address %s", trace_get_src_addr (t));
+         d2log (LOG_ERR|LOG_USER, "Failed to insert address %s", trace_get_src_addr (t));
          return FAILURE;
       }
    }
       
    if (!get_addr_id ((s + S_ADDR_ID)->pstmt, trace_get_dst_addr (t), &rows, &dst_addr_id)) {
       // Technical failure (failed in some other way than not finding an id)
-      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Failed to get address id for %s", trace_get_dst_addr (t));
+      d2log (LOG_ERR|LOG_USER, "Failed to get address id for %s", trace_get_dst_addr (t));
       return FAILURE;
    }
    
    if (rows == 0) { // no address found, so insert it
       if (!insert_addr (db, (s + I_ADDR)->pstmt, trace_get_dst_addr (t), &dst_addr_id)) {
-         syslog (LOG_ERR|LOG_USER, "dns2sqlite: Failed to insert address %s", trace_get_dst_addr (t));
+         d2log (LOG_ERR|LOG_USER, "Failed to insert address %s", trace_get_dst_addr (t));
          return FAILURE;
       } 
    }
    
    if (!insert_trace (db, (s + I_TRACE)->pstmt, t, src_addr_id, dst_addr_id, trace_id)) {
-      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not insert into trace table.");
+      d2log (LOG_ERR|LOG_USER, "Could not insert into trace table.");
       return FAILURE;
    }
    return SUCCESS;
@@ -386,7 +381,7 @@ store_to_db (sqlite3 *db, sql_stmt_t *s, trace_t *t) {
    sqlite_int64 trace_id;
    
    if (!store_trace (db, s, t, &trace_id)) {
-      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Failed to store trace.");
+      d2log (LOG_ERR|LOG_USER, "Failed to store trace.");
       return FAILURE;
    }
    
@@ -438,7 +433,7 @@ open_db (char *filename, sqlite3 **db) {
    rc = sqlite3_open (filename, db);
       
    if (rc != SQLITE_OK) {
-      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Could not open database file: %s", filename);
+      d2log (LOG_ERR|LOG_USER, "Could not open database file: %s", filename);
       sqlite3_close (*db);
       return FAILURE;
    }
@@ -452,9 +447,9 @@ open_db (char *filename, sqlite3 **db) {
 
 // --- create_db ---------------------------------------------------------------
 int 
-create_db (char *template, char *dt_filename, bool_t overwrite, sqlite3 **db) {
-   if (!create_db_from_template (template, dt_filename, overwrite, db)) {
-      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Failed to create database from template %s.", template);
+create_db (FILE *template_file, char *template, char *dt_filename, bool_t overwrite, sqlite3 **db) {
+   if (!create_db_from_template (template_file, template, dt_filename, overwrite, db)) {
+      d2log (LOG_ERR|LOG_USER, "Failed to create database from template %s.", template);
       return FAILURE;
    }
    
@@ -463,11 +458,12 @@ create_db (char *template, char *dt_filename, bool_t overwrite, sqlite3 **db) {
 
 // --- create_db_from_template -------------------------------------------------
 int
-create_db_from_template (char *template, char *filename, bool_t overwrite, sqlite3 **db) {
-   if (!copy_file (template, filename, overwrite)) {
-      syslog (LOG_ERR|LOG_USER, "dns2sqlite: Failed to copy template db from %s to %s.", template, filename);
+create_db_from_template (FILE *template_file, char *template, char *filename, bool_t overwrite, sqlite3 **db) {
+    if (!copy_file (template_file,template, filename, overwrite)) {
+      d2log (LOG_ERR|LOG_USER, "Failed to copy template db from %s to %s.", template, filename);
       return FAILURE;
    }
+
    return open_db (filename, db);
 }
 
