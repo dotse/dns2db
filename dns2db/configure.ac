@@ -50,6 +50,40 @@ AC_CHECK_FUNCS([bzero regcomp strtoul])
 # Language used for further checks.
 AC_LANG([C])
 
+# Check library versions
+AC_MSG_CHECKING(for ldns version >=1.3.0)
+
+    AC_RUN_IFELSE([AC_LANG_SOURCE([[
+	#include <stdio.h>
+	#include <ldns/util.h>
+	#include <string.h>
+
+	int main(int argc,char **argv)
+	{
+		int res = 0;
+		int a,b,c;
+		
+		sscanf(LDNS_VERSION,"%d.%d.%d",&a,&b,&c);
+
+		if (a < 1)
+			res=1;
+		else if (a==1 && b<3) 
+			res=1;
+		return res;
+	}
+    ]])],[AC_MSG_RESULT(yes)]          ,[AC_MSG_RESULT(no);AC_MSG_ERROR(dns2db needs a never ldns version)],[])
+    
+AC_MSG_CHECKING(for libtrace version >=3.0.4)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+     		#include <libtrace.h>
+			#if LIBTRACE_API_VERSION < ((3<<16)|(0<<8)|(4))
+		 			#error LIBTRACE_API_VERSION 
+			#endif
+		     ]])],
+		     [AC_MSG_RESULT(yes)],
+		     [AC_MSG_RESULT(no);AC_MSG_ERROR(dns2db needs a never libtrace version)])
+		     
+
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/dns2sqlite/Makefile
