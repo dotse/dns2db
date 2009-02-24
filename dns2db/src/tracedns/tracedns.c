@@ -8,10 +8,27 @@
 #include <stdio.h>
 #include <getopt.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+
 #include "packet_handler.h"
 
+FILE *pipeh=0;
+FILE *duperr=0;
+
 static void usage (char * argv0) {
-   fprintf (stderr, "usage: %s [ --filter | -f bpfexp ]  [ --snaplen | -s snap ]\n\t\t[ --promisc | -p flag] [ --help | -h ] [ --libtrace-help | -H ] libtraceuri...\n", argv0);
+   fprintf (stdout, "usage: %s [ --filter | -f bpfexp ]  [ --snaplen | -s snap ]\n\t\t[ --promisc | -p flag] [ --help | -h ] [ --libtrace-help | -H ] libtraceuri...\n", argv0);
+}
+
+// function that echo all output to stderr to both stderr and syslog
+void echo()
+{
+   char str[300];
+   while (fgets(str,sizeof(str),pipeh))
+   {
+      fprintf(duperr,"%s",str);
+      syslog (LOG_ERR|LOG_USER, "%s",str);
+   }
 }
 
 int main (int argc, char * argv []) {
@@ -21,7 +38,29 @@ int main (int argc, char * argv []) {
    int snaplen = -1;
    int promisc = 1; // promisc < 1 = off, promisc >= 1 on.
 
+   int pipenos[2];
+   int flags;
+   int stderrdup;
+
+   // open syslog
+   openlog("tracedns",LOG_PID,LOG_USER);  // open d2log
+
+   // store a handle to the real stderr
+   stderrdup = dup(2);
+
+   // create a pipe then redirect stderr into that pipe
+   pipe(pipenos); 
+   dup2(pipenos[1],2 /*stderr*/);
+
+   flags = fcntl(pipenos[0], F_GETFL, 0);
+   flags |= O_NONBLOCK;
+   fcntl(pipenos[0], F_SETFL, flags);
+   pipeh = fdopen(pipenos[0],"r");
+   duperr = fdopen(stderrdup,"w");
+
    while (1) {
+      echo(); 
+    
       int option_index;
       struct option long_options [] = {
          {"filter", 1, 0, 'f'},
@@ -60,6 +99,7 @@ int main (int argc, char * argv []) {
             /* FALL THRU */
          case 'h':
             usage (argv [0]);
+            echo();            
             return 1;
       }
    }
@@ -76,6 +116,7 @@ int main (int argc, char * argv []) {
 
       if (trace_is_err (trace)) {
          trace_perror (trace, "Opening trace file");
+         echo(); 
          return 1;
       }
 
@@ -96,6 +137,7 @@ int main (int argc, char * argv []) {
       if (trace_start (trace)) {
          trace_perror (trace, "Starting trace");
          trace_destroy (trace);
+         echo(); 
          return 1;
       }
 
@@ -103,6 +145,7 @@ int main (int argc, char * argv []) {
 
       while (trace_read_packet (trace, packet) > 0) {
          per_packet (packet);
+         echo(); 
       }
 
       trace_destroy_packet (packet);
@@ -113,6 +156,8 @@ int main (int argc, char * argv []) {
 
       trace_destroy (trace);
    }
-
+   echo(); 
+ 
+   closelog();
    return 0;
 }
