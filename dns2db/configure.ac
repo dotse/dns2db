@@ -33,6 +33,7 @@ AC_CHECK_HEADERS([arpa/inet.h limits.h netinet/in.h stdlib.h string.h strings.h 
 AC_CHECK_HEADER(net/ethernet.h, AC_DEFINE(HAVE_NET_ETHERNET_H,1,[has net/ethernet.h header]))
 AC_CHECK_HEADER(net/ethertypes.h, AC_DEFINE(HAVE_NET_ETHERTYPES_H,1,[has net/ethertypes.h header]))
 AC_CHECK_HEADER(libtrace.h, AC_DEFINE(HAVE_LIBTRACE_H,1,[has net/libtrace.h header]))
+AC_CHECK_HEADER(ldns/ldns.h, AC_DEFINE(HAVE_LDNS_H,1,[has ldns/ldns.h header]))
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -55,23 +56,32 @@ AC_MSG_CHECKING(for ldns version >=1.3.0)
 
     AC_RUN_IFELSE([AC_LANG_SOURCE([[
 	#include <stdio.h>
-	#include <ldns/util.h>
 	#include <string.h>
 
-	int main(int argc,char **argv)
-	{
-		int res = 0;
-		int a,b,c;
-		
-		sscanf(LDNS_VERSION,"%d.%d.%d",&a,&b,&c);
-
-		if (a < 1)
-			res=1;
-		else if (a==1 && b<3) 
-			res=1;
-		return res;
-	}
-    ]])],[AC_MSG_RESULT(yes)]          ,[AC_MSG_RESULT(no);AC_MSG_ERROR(dns2db needs a never ldns version)],[])
+	#ifdef HAVE_LDNS_H
+		#include <ldns/ldns.h>
+	
+		int main(int argc,char **argv)
+		{
+			int res = 0;
+			int a,b,c;
+			
+			sscanf(LDNS_VERSION,"%d.%d.%d",&a,&b,&c);
+	
+			if (a < 1)
+				res=1;
+			else if (a==1 && b<3) 
+				res=1;
+			return res;
+		}
+	#else
+		int main(int argc,char **argv)
+		{
+			printf("ldns/ldns.h not found - version check disabled -");
+			return 0; 
+		}	
+	#endif
+	    ]])],[AC_MSG_RESULT(yes)]          ,[AC_MSG_RESULT(no);AC_MSG_ERROR(dns2db needs a never ldns version)],[])
     
 AC_MSG_CHECKING(for libtrace version >=3.0.4)
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
