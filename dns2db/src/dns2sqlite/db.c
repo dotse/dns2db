@@ -34,7 +34,7 @@ static sql_stmt_t G_STMT [] = {
    {"INSERT INTO TRACE (s,us,ether_type,protocol,src_addr,dst_addr,src_port) VALUES (:s,:us,:eth,:pro,:sa,:da,:por)", NULL},
    {"INSERT INTO UNHANDLED_PACKET VALUES (:tid,:pkt,:rsn)", NULL},
    {"INSERT INTO ADDR (addr) VALUES (:adr)", NULL},
-   {"INSERT INTO DNS_HEADER VALUES (:tid,:mid,:qr,:aa,:tc,:rd,:cd,:ra,:ad,:oc,:rc,:qdc,:anc,:nsc,:arc)", NULL},
+   {"INSERT INTO DNS_HEADER VALUES (:tid,:mid,:qr,:aa,:tc,:rd,:cd,:ra,:ad,:oc,:rc,:edns0,:do,:extended_rcode,:version,:z,:qdc,:anc,:nsc,:arc)", NULL},
    {"INSERT INTO DNS_RR VALUES (:tid,:mid,:n,:rr,:lvl1,:lvl2,:rest,:rrt,:rrc,:ttl)", NULL},
    {"INSERT INTO DNS_RR_DATA VALUES (:tid,:mid,:rri,:rrt,:rdi,:rdt,:rd)", NULL},
    {"SELECT ID FROM ADDR WHERE ADDR = :a", NULL}
