@@ -49,7 +49,7 @@ int main (int argc, char * argv []) {
    stderrdup = dup(2);
 
    // create a pipe then redirect stderr into that pipe
-   pipe(pipenos); 
+   pipe(pipenos);
    dup2(pipenos[1],2 /*stderr*/);
 
    flags = fcntl(pipenos[0], F_GETFL, 0);
@@ -59,8 +59,8 @@ int main (int argc, char * argv []) {
    duperr = fdopen(stderrdup,"w");
 
    while (1) {
-      echo(); 
-    
+      echo();
+
       int option_index;
       struct option long_options [] = {
          {"filter", 1, 0, 'f'},
@@ -124,10 +124,6 @@ int main (int argc, char * argv []) {
          if (trace_config (trace, TRACE_OPTION_SNAPLEN, &snaplen)) {
             trace_perror (trace, "ignoring: ");
          }
-      if (filter)
-         if (trace_config (trace, TRACE_OPTION_FILTER, filter)) {
-            trace_perror (trace, "ignoring: ");
-         }
       if (promisc != -1) {
          if (trace_config (trace, TRACE_OPTION_PROMISC, &promisc)) {
             trace_perror (trace, "ignoring: ");
@@ -144,8 +140,10 @@ int main (int argc, char * argv []) {
       packet = trace_create_packet ();
 
       while (trace_read_packet (trace, packet) > 0) {
-         per_packet (packet);
-         echo(); 
+	 if(!filter || (trace_apply_filter(filter,packet)>0)) {
+            per_packet (packet);
+            echo();
+	 }
       }
 
       trace_destroy_packet (packet);
