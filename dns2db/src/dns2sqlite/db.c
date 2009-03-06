@@ -33,11 +33,16 @@ static sql_stmt_t G_STMT [] = {
    {"ROLLBACK", NULL},
    {"INSERT INTO TRACE (s,us,ether_type,protocol,src_addr,dst_addr,src_port) VALUES (:s,:us,:eth,:pro,:sa,:da,:por)", NULL},
    {"INSERT INTO UNHANDLED_PACKET VALUES (:tid,:pkt,:rsn)", NULL},
-   {"INSERT INTO ADDR (addr) VALUES (:adr)", NULL},
    {"INSERT INTO DNS_HEADER VALUES (:tid,:mid,:qr,:aa,:tc,:rd,:cd,:ra,:ad,:oc,:rc,:edns0,:do,:extended_rcode,:version,:z,:qdc,:anc,:nsc,:arc)", NULL},
    {"INSERT INTO DNS_RR VALUES (:tid,:mid,:n,:rr,:lvl1,:lvl2,:rest,:rrt,:rrc,:ttl)", NULL},
    {"INSERT INTO DNS_RR_DATA VALUES (:tid,:mid,:rri,:rrt,:rdi,:rdt,:rd)", NULL},
-   {"SELECT ID FROM ADDR WHERE ADDR = :a", NULL}
+   {"INSERT INTO Q VALUES "
+         "(:null,:s,:us,:eth,:pro,:sa,:da,:por," //8
+         ":mid,:qr,:aa,:tc,:rd,:cd,:ra,:ad,:oc,:rc," //10+8
+         ":edns0,:do,:extended_rcode,:version,:z,"  //15+8
+         ":qdc,:anc,:nsc,:arc,"              //19+8
+         ":lvl1,:lvl2,:rest,:rrt,:rrc"       //5+19+8
+         ")", NULL}
 };
 #define NSTMT (sizeof G_STMT / sizeof G_STMT [0])
 
@@ -57,7 +62,7 @@ finalize_stmts (sql_stmt_t *s);
 /** Store unhandled packets, i.e. non DNS messages, separately in the database.
  */
 int
-store_unhandled_packet (sql_stmt_t *s, sqlite_int64 trace_id, trace_t *t, char *reason);
+store_unhandled_packet (sqlite3 *db, sql_stmt_t *s, sqlite_int64 trace_id, trace_t *t, char *reason);
 
 /** Store an RR DATA section in the database.
  */
@@ -100,12 +105,15 @@ store_dns_rr_list (
  *  "unhandled packet".
  */
 int
-store_dns_packet (sql_stmt_t *s, sqlite_int64 trace_id, ldns_pkt *pdns);
+store_dns_query_packet (sql_stmt_t *s,  trace_t *t, ldns_pkt *pdns);
+
+int
+store_dns_packet (sqlite3 *db, sql_stmt_t *s, sqlite_int64 trace_id, trace_t *t, ldns_pkt *pdns);
 
 /** Store general information about the packet trace, i.e. timestamp, IP-
  *  addresses, protocol, and port.
  */
-int 
+int
 store_trace (sqlite3 *db, sql_stmt_t *s, trace_t *t, sqlite_int64 *trace_id);
 
 // === Function implementations ================================================
@@ -115,7 +123,8 @@ int
 copy_file (FILE *f_fp, char *from, char *to, bool_t overwrite) {
    int c;
    FILE *t_fp;
-   
+   int result = SUCCESS;
+
    // check if destination file exists and if it is ok to overwrite it.
    if ((t_fp = fopen (to, "rb")) != NULL) {
       if (overwrite) { 
@@ -124,41 +133,40 @@ copy_file (FILE *f_fp, char *from, char *to, bool_t overwrite) {
       else {
          return FAILURE;
       }
-   } 
-         
-   
+   }
+
+
    if ((t_fp = fopen (to, "wb")) == NULL) {
       perror (to);
       fclose (f_fp); // close the already opened 'from' file.
       return FAILURE;
    }
-   
+
    while ((c = fgetc (f_fp)) != EOF) {
       fputc (c, t_fp);
    }
-   
-   fclose (f_fp);
+
    fflush (t_fp);
-   fclose (t_fp);
-   
+
    if (ferror (f_fp) && ferror (t_fp)) {
       d2log (
          LOG_ERR|LOG_USER, 
-         "Failed both reading from %s and writing to %s. Error: %s", from, to, strerror (errno)
-      );
-      return FAILURE;
+         "Failed both reading from %s and writing to %s. Error: %s", from, to, strerror (errno));
+      result = FAILURE;
    }
    else if (ferror (f_fp)) {
       d2log (LOG_ERR|LOG_USER, "Failed while reading from %s. Error: %s", from, strerror (errno));
-      return FAILURE;
+      result = FAILURE;
    }
    else if (ferror (t_fp)) {
       d2log (LOG_ERR|LOG_USER, "Failed while writing to %s.", to, strerror (errno));
-      return FAILURE;
+      result = FAILURE;
    }
-   else {
-      return SUCCESS;
-   }
+
+   fclose (f_fp);
+   fclose (t_fp);
+
+   return result;
 }
 
 
@@ -168,12 +176,12 @@ prepare_stmts (sqlite3 *db, sql_stmt_t **base) {
    int rc;
    const char *tail;
    sql_stmt_t *s = G_STMT;
-   
+
    *base = s;
-   
+
    for (unsigned int i = 0; i < NSTMT; ++i, s++) {
       rc  = sqlite3_prepare_v2 (db, s->sql, strlen (s->sql), &s->pstmt, &tail);
-      
+
       if (rc != SQLITE_OK) {
          d2log (LOG_ERR|LOG_USER, "Unable to prepare statement: %s", s->sql);
          return FAILURE;
@@ -187,10 +195,10 @@ prepare_stmts (sqlite3 *db, sql_stmt_t **base) {
 int
 finalize_stmts (sql_stmt_t *s) {
    int rc;
-   
+
    for (unsigned int i = 0; i < NSTMT; ++i, s++) {
       rc = sqlite3_finalize (s->pstmt);
-      
+
       if (rc != SQLITE_OK) {
          d2log (LOG_ERR|LOG_USER, "Unable to finalize prepared statement: %s", s->sql);
          return FAILURE;
@@ -202,8 +210,12 @@ finalize_stmts (sql_stmt_t *s) {
 
 // --- store_unhandled_packet --------------------------------------------------
 int
-store_unhandled_packet (sql_stmt_t *s, sqlite_int64 trace_id, trace_t *t, char *reason) {
-   
+store_unhandled_packet (sqlite3 *db, sql_stmt_t *s, sqlite_int64 trace_id, trace_t *t, char *reason) {
+
+   if (!store_trace (db, s, t, &trace_id)) {
+      d2log (LOG_ERR|LOG_USER, "Failed to store trace.");
+      return FAILURE;
+   }
    if (!insert_unhandled_packet ((s + I_UNHAND)->pstmt, trace_id, t, reason)) {
       d2log (LOG_ERR|LOG_USER, "Could not insert into unhandled_packet table");
       return FAILURE;
@@ -223,7 +235,7 @@ store_dns_rr_data (
    int rdf_n,
    ldns_rdf *rdf
 ) {
-   ldns_rdf_type rdf_t; 
+   ldns_rdf_type rdf_t;
    char *rdf_d;
 
 
@@ -243,11 +255,11 @@ store_dns_rr_data (
 // --- store_dns_rr ------------------------------------------------------------
 int
 store_dns_rr (
-   sql_stmt_t *s, 
-   sqlite_int64 trace_id, 
-   sqlite_int64 msg_id, 
-   int n, 
-   char *rr_tag, 
+   sql_stmt_t *s,
+   sqlite_int64 trace_id,
+   sqlite_int64 msg_id,
+   int n,
+   char *rr_tag,
    ldns_rr *rr
 ) {
    int rdf_n = 0;
@@ -290,7 +302,6 @@ store_dns_rr_list (
 ) {
    int n = 0;
    ldns_rr *rr;
-   
 
    while ((rr = ldns_rr_list_pop_rr (rr_list)) != NULL) {
       if (!store_dns_rr (s, trace_id, msg_id, n++, rr_tag, rr)) {
@@ -302,12 +313,30 @@ store_dns_rr_list (
    return SUCCESS;
 }
 
+// --- store_dns_query_packet --------------------------------------------------------
+int
+store_dns_query_packet (sql_stmt_t *s,  trace_t *t, ldns_pkt *pdns) {
+   uint16_t msgid = ldns_pkt_id (pdns);
+
+   if (!insert_query ((s + I_QUERY)->pstmt, t, pdns)) {
+      d2log (LOG_ERR|LOG_USER, "Could not insert into trace table.");
+      return FAILURE;
+   }
+   return SUCCESS;
+
+}
+
+
 
 // --- store_dns_packet --------------------------------------------------------
 int
-store_dns_packet (sql_stmt_t *s, sqlite_int64 trace_id, ldns_pkt *pdns) {
+store_dns_packet (sqlite3 *db, sql_stmt_t *s, sqlite_int64 trace_id, trace_t *t, ldns_pkt *pdns) {
    uint16_t msgid = ldns_pkt_id (pdns);
-   
+
+   if (!store_trace (db, s, t, &trace_id)) {
+      d2log (LOG_ERR|LOG_USER, "Failed to store trace.");
+      return FAILURE;
+   }
 
    if (!insert_dns_header ((s + I_DNS_H)->pstmt, trace_id, pdns)) {
       d2log (LOG_ERR|LOG_USER, "Failed to store DNS header.");
@@ -334,38 +363,8 @@ store_dns_packet (sql_stmt_t *s, sqlite_int64 trace_id, ldns_pkt *pdns) {
 // --- store_trace -------------------------------------------------------------
 int 
 store_trace (sqlite3 *db, sql_stmt_t *s, trace_t *t, sqlite_int64 *trace_id) {
-   int rows;
-   sqlite_int64 src_addr_id;
-   sqlite_int64 dst_addr_id;
-
-
-   if (!get_addr_id ((s + S_ADDR_ID)->pstmt, trace_get_src_addr (t), &rows, &src_addr_id)) {
-      // Technical failure (failed in some other way than not finding an id)
-      d2log (LOG_ERR|LOG_USER, "Failed to get address id for %s", trace_get_src_addr (t));
-      return FAILURE;
-   }
-
-   if (rows == 0) { // no address found, so insert it
-      if (!insert_addr (db, (s + I_ADDR)->pstmt, trace_get_src_addr (t), &src_addr_id)) {
-         d2log (LOG_ERR|LOG_USER, "Failed to insert address %s", trace_get_src_addr (t));
-         return FAILURE;
-      }
-   }
-      
-   if (!get_addr_id ((s + S_ADDR_ID)->pstmt, trace_get_dst_addr (t), &rows, &dst_addr_id)) {
-      // Technical failure (failed in some other way than not finding an id)
-      d2log (LOG_ERR|LOG_USER, "Failed to get address id for %s", trace_get_dst_addr (t));
-      return FAILURE;
-   }
    
-   if (rows == 0) { // no address found, so insert it
-      if (!insert_addr (db, (s + I_ADDR)->pstmt, trace_get_dst_addr (t), &dst_addr_id)) {
-         d2log (LOG_ERR|LOG_USER, "Failed to insert address %s", trace_get_dst_addr (t));
-         return FAILURE;
-      } 
-   }
-   
-   if (!insert_trace (db, (s + I_TRACE)->pstmt, t, src_addr_id, dst_addr_id, trace_id)) {
+   if (!insert_trace (db, (s + I_TRACE)->pstmt, t, trace_id)) {
       d2log (LOG_ERR|LOG_USER, "Could not insert into trace table.");
       return FAILURE;
    }
@@ -375,36 +374,41 @@ store_trace (sqlite3 *db, sql_stmt_t *s, trace_t *t, sqlite_int64 *trace_id) {
 
 // --- store_to_db -------------------------------------------------------------
 int
-store_to_db (sqlite3 *db, sql_stmt_t *s, trace_t *t) {
+store_to_db (sqlite3 *db, sql_stmt_t *s, trace_t *t, bool_t only_q, bool_t only_r) {
    ldns_pkt *pdns_pkt;
    ldns_status ldns_rc;
    sqlite_int64 trace_id;
-   
-   if (!store_trace (db, s, t, &trace_id)) {
-      d2log (LOG_ERR|LOG_USER, "Failed to store trace.");
-      return FAILURE;
-   }
+   int res = SUCCESS;
+
    
    if (trace_get_protocol (t) == IPPROTO_UDP || trace_get_protocol (t) == IPPROTO_TCP) {
       ldns_rc = ldns_wire2pkt (&pdns_pkt, trace_get_data (t), trace_get_length (t));
 
       if (ldns_rc != LDNS_STATUS_OK) {
-         if (!store_unhandled_packet (s, trace_id, t, (char *)ldns_get_errorstr_by_id (ldns_rc))) { 
+         if (!store_unhandled_packet (db, s, trace_id, t, (char *)ldns_get_errorstr_by_id (ldns_rc))) { 
             return FAILURE;
          }
          return SUCCESS;
       }
       else {
-         if (!store_dns_packet (s, trace_id, pdns_pkt)) {
-            ldns_pkt_free (pdns_pkt);
-            return FAILURE;
+
+
+         if (ldns_pkt_qr(pdns_pkt) == 0) // is packet a question ?
+         {
+            if (!only_r)
+               res = store_dns_query_packet (s, t, pdns_pkt);
+         }
+         else
+         {
+            if (!only_q)
+               res = store_dns_packet (db, s, trace_id, t, pdns_pkt);
          }
          ldns_pkt_free (pdns_pkt);
-         return SUCCESS;
+         return res;
       }
    } 
    else {
-      if (!store_unhandled_packet (s, trace_id, t, "Unhandled protocol.")) { 
+      if (!store_unhandled_packet (db, s, trace_id, t, "Unhandled protocol.")) { 
          return FAILURE;
       }
    }
@@ -446,7 +450,7 @@ open_db (char *filename, sqlite3 **db) {
 }
 
 // --- create_db ---------------------------------------------------------------
-int 
+int
 create_db (FILE *template_file, char *template, char *dt_filename, bool_t overwrite, sqlite3 **db) {
    if (!create_db_from_template (template_file, template, dt_filename, overwrite, db)) {
       d2log (LOG_ERR|LOG_USER, "Failed to create database from template %s.", template);

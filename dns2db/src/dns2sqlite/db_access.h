@@ -71,15 +71,6 @@ insert_unhandled_packet (
    char *reason //!< In: Error string.
 );
 
-/** Insert an IPv6 address into the db.
- */
-int
-insert_addr (
-   sqlite3 *db, //!< Pointer to opened db.
-   sqlite3_stmt *ps, //!< Pointer to prepared statement.
-   char *addr, //!< In: address in IPv6 presentation format.
-   sqlite_int64 *addr_id //!< Out: address ID of inserted address.
-);
 
 /** Insert a trace header into the db.
  */
@@ -88,8 +79,6 @@ insert_trace (
    sqlite3 *db, //!< Pointer to opened db.
    sqlite3_stmt *ps, //!< Pointer to prepared statement.
    trace_t *t, //!< In: trace data.
-   sqlite_int64 src_addr_id, //!< In: address ID for source address.
-   sqlite_int64 dst_addr_id, //!< In: address ID for destination address.
    sqlite_int64 *trace_id //!< In: trace data.
 );
 
@@ -101,6 +90,13 @@ insert_dns_header (
    sqlite_int64 trace_id, //!< Trace ID corresponding to this DNS header.
    ldns_pkt *pdns //!< In: DNS packet data.
 );
+
+
+ int
+ insert_dns_q (
+    sqlite3_stmt *ps, 
+    int *paranum,
+    ldns_rr_list *rr_list); 
 
 /** Insert DNS RR data into the db.
  */
@@ -127,4 +123,24 @@ insert_dns_rr (
    int n, //!< RR number in DNS query/answer.
    char *rr_tag //!< "QD", "NS", "AN", or "AR".
 );
+
+/** Insert a DNS query header into the db.
+ */
+ int
+ insert_dns_query_header (
+    sqlite3_stmt *ps, //!< Pointer to prepared statement.
+    int *parameternum, //!< In: Parametercount
+    ldns_pkt *pdns //!< In: DNS packet data.
+ );
+
+/** Insert a DNS query into the db.
+ */
+ int
+ insert_query (
+	sqlite3_stmt *ps, 
+	trace_t *t, 
+	ldns_pkt *pdns);
+ 
+
+
 #endif

@@ -36,11 +36,10 @@ enum {
    ROLLBACK,
    I_TRACE, 
    I_UNHAND, 
-   I_ADDR, 
    I_DNS_H, 
    I_DNS_RR, 
    I_DNS_RD, 
-   S_ADDR_ID
+   I_QUERY
 };
 
 struct sql_stmt {
@@ -81,7 +80,7 @@ close_db (sqlite3 *db);
  * statements in "ps".
  */
 int
-store_to_db (sqlite3 *db, sql_stmt_t *ps, trace_t *ptd);
+store_to_db (sqlite3 *db, sql_stmt_t *ps, trace_t *ptd, bool_t only_q, bool_t only_r);
 
 /** Create a new database from a given template.
  */

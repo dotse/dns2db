@@ -34,14 +34,17 @@ static sqlite3 *G_DB = NULL;
 void    d2log(int fp, const char *fmt, ...)
 {
     char *str,*strp;
+    char string[1024];
     va_list ap;
-    
+
     va_start(ap,fmt);
-    vsyslog(fp,fmt,ap);
-    vfprintf(stderr,fmt,ap);
-    fprintf(stderr,"\n");
-    
+    vsnprintf(string,sizeof(string),fmt,ap);
     va_end(ap);
+
+
+    syslog(fp,"%s",string);
+    fprintf(stderr,"%s\n",string);
+
 }
 
 
@@ -423,7 +426,7 @@ mainloop (int argc, char *argv []) {
          rc = start_transaction ((stmts + BEGIN_TRANS)->pstmt);
       }
 
-      if (!store_to_db (G_DB, stmts, t)) {
+      if (!store_to_db (G_DB, stmts, t, only_q, only_r)) {
          d2log (LOG_ERR|LOG_USER, "Failed to store data to db.\n");
       }
 
