@@ -40,15 +40,64 @@
 pragma page_size = 4096;
 pragma default_cache_size = 1000;
 
+
+
+create table q (
+   id integer primary key autoincrement,
+
+   s integer,						-- unix time seconds
+   us integer,						-- unix time micro seconds
+   ether_type integer,					-- ethernet type ipv4,ipv6,arp etc
+   protocol integer,					-- ip protocol tcp,upd,icmp etc
+   src_addr text,					-- source address v6 style
+
+   dst_addr text,					-- dest address v6 style
+   src_port integer,					-- source port
+
+   msg_id integer,					-- dns message id
+   qr integer,						 
+   aa integer,						
+   tc integer,
+   rd integer,
+
+   cd integer,
+   ra integer,
+   ad integer,
+   opcode integer,
+   rcode integer,
+
+   edns0 integer,					-- 1 if packet is using edns0 
+   do integer,						-- 1 if dnssec ok
+   extended_rcode integer,				-- should be 0
+   version integer,					-- edns version should be 0
+   z integer,						-- edns zero for future expansion
+
+   qd_count integer,
+   an_count integer,
+   ns_count integer,
+   ar_count integer,
+
+
+   rr_lvl1dom text, 					-- (cc)TLD, 1st level domain
+   rr_lvl2dom text, 					-- subdomain, 2nd level domain
+   rr_restdom text, 					-- rest of domains
+   rr_type integer,
+   rr_class integer
+
+
+   --primary key (id autoincrement, msg_id, n, rr_n, rr_tag, rdf_n)
+);
+
+
 create table trace (
    id integer primary key autoincrement,
-   s integer,
-   us integer,
-   ether_type integer,
-   protocol integer,
-   src_addr integer,
-   dst_addr integer,
-   src_port integer --,
+   s integer,						-- unix time seconds
+   us integer,						-- unix time micro seconds
+   ether_type integer,					-- ethernet type ipv4,ipv6,arp etc
+   protocol integer,					-- ip protocol tcp,upd,icmp etc
+   src_addr text,					-- source address v6 style
+   dst_addr text,					-- dest address v6 style
+   src_port integer --,					-- source port
    -- check (ether_type between 0 and 65535),
    -- check (protocol between 0 and 65535),
    -- check (src_port between 0 and 65535)
@@ -60,16 +109,17 @@ create table trace (
 
 create table unhandled_packet (
    trace_id integer primary key,
-   packet blob,
-   reason text
+   packet blob,						-- the packet
+   reason text--,
+--   s integer--,						-- unix time seconds
+--   us integer,						-- unix time micro seconds
+--   ether_type integer,					-- ethernet type ipv4,ipv6,arp etc
+--   protocol integer,					-- ip protocol tcp,upd,icmp etc
+--   src_addr text,					-- source address v6 style
+--   dst_addr text,					-- dest address v6 style
+--   src_port integer					-- source port
+--   reason text
    -- foreign key (trace_id) references trace
-);
-
-
-create table addr (
-   id integer primary key autoincrement,
-   addr text,
-   unique (addr) -- on conflict replace
 );
 
 
@@ -137,44 +187,6 @@ create table dns_rr_data (
 ----------------------------
 --- Lookup tables and views.
 ----------------------------
-create view q
-as
-   select t.id as id,
-      t.s as ts,
-      d.msg_id as msg_id,
-      0 as Client_num,
-      a.addr as Client,
-      t.src_port as src_port,
-      rr_type as Qtype,
-      rr_class as Qclass,
-      msglen,
-      rtrim (restdom || lvl2dom || lvl1dom, '.') as Qname,
-      Opcode,
-      Rd,
-      Opt_RR,
-      rtrim (lvl2dom || lvl1dom, '.') as E1
-   from trace t
-   join addr a on (t.src_addr = a.id)
-   join (
-      select dh.trace_id trace_id,
-         dh.msg_id msg_id,
-         rr_type,
-         rr_class,
-         0 msglen,
-         case rr_restdom when null then '' else rr_restdom end restdom,
-         case rr_lvl2dom when null then '' else rr_lvl2dom end lvl2dom,
-         case rr_lvl1dom when null then '' else rr_lvl1dom end lvl1dom,
-         opcode,
-         rd,
-         rr_type = 41 Opt_RR
-      from dns_header dh
-      join dns_rr dr on (dh.trace_id = dr.trace_id and dh.msg_id = dr.msg_id)
-   ) d on (d.trace_id = t.id);
-
---   Do INTEGER, 
---   Version TEXT, 
---   E1 TEXT, 
---   E2 TEXT
 
 
 create table dns_rr_type (
@@ -188,6 +200,9 @@ create table dns_q_type (
    type text,
    description text
 );
+
+
+
 
 create view dns_type_all
 as
@@ -296,10 +311,11 @@ insert into ether_type values (2048, 'ETHERTYPE_IP', 'IP protocol.');
 insert into ether_type values (2054, 'ETHERTYPE_ARP', 'Address resolution protocol.');
 insert into ether_type values (32821, 'ETHERTYPE_REVARP', 'Reverse address resolution protocol.');
 insert into ether_type values (33024, 'ETHERTYPE_VLAN', 'IEEE 802.1Q VLAN tagging.');
-insert into ether_type values (34524, 'ETHERTYPE_IPV6', 'IPv6 protocol.');
+insert into ether_type values (34525, 'ETHERTYPE_IPV6', 'IPv6 protocol.');
 insert into ether_type values (36864, 'ETHERTYPE_LOOPBACK', 'Used to test interfaces.');
 
 insert into protocol values (0, 'IPPROTO_IP', 'Dummy for IP or IP6 hop-by-hop options.');
 insert into protocol values (1, 'IPPROTO_ICMP', 'Control Message Protocol.');
 insert into protocol values (6, 'IPPROTO_TCP', 'Transmission Control Protocol');
 insert into protocol values (17, 'IPPROTO_UDP', 'User Datagram Protocol.');
+
