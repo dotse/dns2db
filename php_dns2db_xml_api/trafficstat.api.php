@@ -74,30 +74,41 @@ $qclass['255']='Any';
 
 $s = 0;
 
-// Change the DNS2DB path below to the path of your db-files.
-$dsn = "sqlite:/DNS2DB/".$_GET['day']."/Fq.".$_GET['day']."_".$_GET['time'].".db";
+// Change the DNS2DB path and DBPREFIX below to the path of your db-files.
+$dsn = "sqlite:/*DNS2DB*/".$_GET['day']."/*DBPREFIX*".$_GET['day']."".$_GET['time'].".db";
 $dbh = new PDO($dsn);
 
-$dsn = "sqlite:reversedb.db3";
+// Change path to reversedb.db3. Note! this file needs to be writable by the webserver user.
+$dsn = "sqlite:/var/www/htdocs/reversedb.db3";
 $rev = new PDO($dsn);
+$rev->setAttribute( PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING );
 $lookup = $rev->prepare("select name from revdb where ip = ?");
 $add = $rev->prepare("insert into revdb (ip, name) values (?, ?)");
 
 if ($_GET['search'] == 'null') {
-    $stmt = $dbh->prepare("select count(id)/5 as qcount, E1 as domain from q group by E1 order by qcount desc limit ".$_GET['count']);
-    $stmt->execute();
+	$stmt = $dbh->prepare("select count (*)/5 qcount, trim (rr_lvl2dom || rr_lvl1dom, '.') from q group by rr_lvl2dom, rr_lvl1dom order by qcount desc limit ".$_GET['count']);
+	$stmt->execute();
+
 } else if ($_GET['search'] == '--topservers--') {
-    $stmt = $dbh->prepare("select count(id)/5 as qcount, Client as domain from q group by Client order by qcount desc limit ".$_GET['count']);
-    $stmt->execute();
-    $s = 2;
+ 	$stmt = $dbh->prepare("select count (*)/5 as qcount, src_addr from q group by src_addr order by qcount desc limit ".$_GET['count']);
+        $stmt->execute();
+        $s = 2;
+
 } else if ($_GET['server'] == 'false') {
-    $stmt = $dbh->prepare("select count(id)/5 as qcount, Client as domain from q where E1 = \"". $_GET['search'] ."\" group by domain order by qcount desc limit ".$_GET['count']);
-    $stmt->execute();
-    $s = 2;
+	$stmt = $dbh->prepare("select count(id)/5 as qcount, src_addr as domain from q where trim (rr_lvl2dom || rr_lvl1dom, '.') = \"". $_GET['search'] ."\" group by domain order by qcount desc limit ".$_GET['count']);
+        $stmt->execute();
+        $s = 2;
+
 } else {
-    $stmt = $dbh->prepare("select count(id)/5 as qcount, E1 as domain, Qname as domain, Qtype, Qclass from q where Client = \"". $_GET['search'] ."\" group by domain, qtype order by qcount desc limit ".$_GET['count']);
-    // print_r($dbh->errorInfo());
-   // echo "select count(id)/5 as qcount, E1 as domain, Qname as domain, Qtype, Qclass from q where Client = \"". $_GET['search'] ."\" group by domain, qtype order by qcount desc limit ".$_GET['count'];
+	$stmt = $dbh->prepare("select count (*)/5 as qcount,
+	   trim (rr_lvl2dom || rr_lvl1dom, '.') as domain,
+	   trim (rr_restdom || rr_lvl2dom || rr_lvl1dom, '.') as domain,
+	   rr_type as qtype,
+	   rr_class as qclass
+	from q where src_addr =  \"".$_GET['search']."\"
+	group by domain, rr_type
+	order by qcount desc
+	limit ".$_GET['count']);
     $stmt->execute();
     $s = 1;
 }
@@ -115,13 +126,12 @@ while ($row = $stmt->fetch()) {
     if ($s == 1) {
       $dom = $row[2]." (".$qclass[$row[4]]." ".$qtype[$row[3]].")";
     } else if ($s == 2) {
-      $lookup->execute(array($row[1]));
-      $dom = $lookup->fetchcolumn();
-      if ($dom == "") {
-        $dom = gethostbyaddr($row[1]);
-        $add->execute(array($row[1], $dom));
-//	$dom = "(NEW)-".$dom;
-      }
+        $lookup->execute(array($row[1]));
+        $dom = $lookup->fetchcolumn();
+        if ($dom == "") {
+          $dom = gethostbyaddr($row[1]);
+          $add->execute(array($row[1], $dom));
+        }
     } else {
       $dom = $row[1];
     }
