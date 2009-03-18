@@ -1,3 +1,4 @@
+/*! \file */ 
 /*
  * Copyright (c) 2007 .SE (The Internet Infrastructure Foundation).
  *                  All rights reserved.
@@ -26,6 +27,10 @@
  *
  */
 #include "db.h"
+
+/*! \ingroup dns2sqlite */ 
+/*@{*/
+
 
 static sql_stmt_t G_STMT [] = {
    {"BEGIN TRANSACTION", NULL},
@@ -479,3 +484,4 @@ close_db (sqlite3 *db) {
    return SUCCESS;
 }
 
+/*}@*/

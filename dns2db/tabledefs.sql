@@ -78,9 +78,9 @@ create table q (
    ar_count integer,
 
 
-   rr_lvl1dom text, 					-- (cc)TLD, 1st level domain
-   rr_lvl2dom text, 					-- subdomain, 2nd level domain
-   rr_restdom text, 					-- rest of domains
+   rr_lvl1dom text, 					-- (cc)TLD, 1st level domain (lowercase)
+   rr_lvl2dom text, 					-- subdomain, 2nd level domain (lowercase)
+   rr_cname text, 					-- full cname (preserved case)
    rr_type integer,
    rr_class integer
 

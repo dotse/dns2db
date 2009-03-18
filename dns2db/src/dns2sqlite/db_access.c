@@ -1,3 +1,4 @@
+/*! \file */ 
 /*
  * Copyright (c) 2007 .SE (The Internet Infrastructure Foundation).
  *                  All rights reserved.
@@ -44,16 +45,25 @@ split_dname3 (char **rdname3, ldns_rr *rr) {
    ldns_rdf *tmp = NULL;
    uint8_t n = 0;
    uint8_t i = 0;
-   
+   int p = 0;
+
+
    rowner = ldns_dname_reverse (ldns_rr_owner (rr));
    if (rowner == NULL) return;
-   
+
    label = ldns_dname_label (rowner, 0);
    n = ldns_dname_label_count (rowner);
 
    tmp = rowner;
    while (i < 2 && i <= n) {
       rdname3 [i] = label == NULL ? strdup (".") : ldns_rdf2str (label);
+      p = 0;
+      while (rdname3[i][p] != 0)
+      {
+         if (rdname3[i][p] >= 'A' && rdname3[i][p] <= 'Z')
+            rdname3[i][p] = rdname3[i][p] - 'A' + 'a';
+         p++;
+      }
       if (label != NULL) {ldns_rdf_deep_free (label);}
       tmp = ldns_dname_left_chop (rowner);
       ldns_rdf_deep_free (rowner);
@@ -61,7 +71,10 @@ split_dname3 (char **rdname3, ldns_rr *rr) {
       rowner = tmp;
       i++;
    }
-   rdname3 [2] = rowner == NULL ? strdup (".") : ldns_rdf2str (rowner);
+
+
+
+   rdname3 [2] = rowner == NULL ? strdup (".") : ldns_rdf2str (ldns_rr_owner (rr));
    ldns_rdf_deep_free (rowner);
    if (label != NULL) {ldns_rdf_deep_free (label);}
 }
@@ -319,10 +332,10 @@ insert_dns_q (
    if (rr)
    {
       split_dname3 (rdname3, rr);
-      
+
       rr_type = ldns_rr_get_type (rr);
       rr_class = ldns_rr_get_class (rr);
-      
+
       ldns_rr_free(rr);
          rr = 0;
    }
@@ -631,34 +644,34 @@ insert_dns_rr_data (
 // --- insert_dns_rr -----------------------------------------------------------
 int
 insert_dns_rr (
-   sqlite3_stmt *ps, 
-   sqlite_int64 trace_id, 
-   uint16_t msg_id, 
-   ldns_rr *rr, 
-   int n, 
+   sqlite3_stmt *ps,
+   sqlite_int64 trace_id,
+   uint16_t msg_id,
+   ldns_rr *rr,
+   int n,
    char *rr_tag
 ) {
    int rc;
    char * rdname3 [] = {NULL, NULL, NULL};
-   
+
    rc = sqlite3_reset (ps);
    if (rc != SQLITE_OK) {
       d2log (LOG_ERR|LOG_USER, "Could not reset statement.");
       return FAILURE;
    }
-   
+
    rc = sqlite3_clear_bindings (ps);
    if (rc != SQLITE_OK) {
       d2log (LOG_ERR|LOG_USER, "Could not clear statement bindings.");
       return FAILURE;
    }
-   
+
    rc = sqlite3_bind_int64 (ps, 1, trace_id);
    if (rc != SQLITE_OK) {
       d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter.");
       return FAILURE;
    }
-   
+
    rc = sqlite3_bind_int (ps, 2, msg_id);
    if (rc != SQLITE_OK) {
       d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter.");

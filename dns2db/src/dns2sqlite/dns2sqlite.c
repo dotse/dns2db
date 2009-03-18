@@ -1,3 +1,4 @@
+/*! \file */ 
 /*
  * Copyright (c) 2007 .SE (The Internet Infrastructure Foundation).
  *                  All rights reserved.
@@ -26,11 +27,13 @@
  *
  */
 #include "dns2sqlite.h"
+/*! \defgroup dns2sqlite */ 
+/*@{*/
 
 static sqlite3 *G_DB = NULL;
 
-
-// === Log function ============================================================
+/** Log function comaptible to syslog()
+ */
 void    d2log(int fp, const char *fmt, ...)
 {
     char *str,*strp;
@@ -452,3 +455,4 @@ main (int argc, char *argv []) {
    closelog();
    exit (res);
 }
+/*}@*/
