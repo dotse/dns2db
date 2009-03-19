@@ -102,7 +102,7 @@ if ($_GET['search'] == 'null') {
 } else {
 	$stmt = $dbh->prepare("select count (*)/5 as qcount,
 	   trim (rr_lvl2dom || rr_lvl1dom, '.') as domain,
-	   trim (rr_restdom || rr_lvl2dom || rr_lvl1dom, '.') as domain,
+	   trim (rr_cname, '.') as domain,
 	   rr_type as qtype,
 	   rr_class as qclass
 	from q where src_addr =  \"".$_GET['search']."\"
