@@ -9,6 +9,9 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* has ldns/ldns.h header */
+#undef HAVE_LDNS_H
+
 /* Define to 1 if you have the `ldns' library (-lldns). */
 #undef HAVE_LIBLDNS
 

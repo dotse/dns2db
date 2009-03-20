@@ -10,6 +10,9 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
 
+/* has ldns/ldns.h header */
+#define HAVE_LDNS_H 1
+
 /* Define to 1 if you have the `ldns' library (-lldns). */
 #define HAVE_LIBLDNS 1
 
@@ -32,10 +35,10 @@
 #define HAVE_NETINET_IN_H 1
 
 /* has net/ethernet.h header */
-#define HAVE_NET_ETHERNET_H 1
+/* #undef HAVE_NET_ETHERNET_H */
 
 /* has net/ethertypes.h header */
-/* #undef HAVE_NET_ETHERTYPES_H */
+#define HAVE_NET_ETHERTYPES_H 1
 
 /* Define to 1 if your system has a GNU libc compatible `realloc' function,
    and to 0 otherwise. */
@@ -78,22 +81,22 @@
 #define HAVE_UNISTD_H 1
 
 /* Name of package */
-#define PACKAGE "dns2sqlite"
+#define PACKAGE "DNS2db"
 
 /* Define to the address where bug reports for this package should be sent. */
 #define PACKAGE_BUGREPORT "bugs@iis.se"
 
 /* Define to the full name of this package. */
-#define PACKAGE_NAME "dns2db"
+#define PACKAGE_NAME "DNS2db"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "dns2db 1.0"
+#define PACKAGE_STRING "DNS2db 2.0"
 
 /* Define to the one symbol short name of this package. */
-#define PACKAGE_TARNAME "dns2db"
+#define PACKAGE_TARNAME "DNS2db"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "1.0"
+#define PACKAGE_VERSION "2.0"
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1
@@ -102,7 +105,7 @@
 #define TIME_WITH_SYS_TIME 1
 
 /* Version number of package */
-#define VERSION "1.0"
+#define VERSION "2.0"
 
 /* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
    <pthread.h>, or <semaphore.h> is not used. If the typedef was allowed, the
