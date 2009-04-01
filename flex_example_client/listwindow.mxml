@@ -26,13 +26,22 @@
 <mx:Fade id="fadeOut" alphaTo="0" duration="500" effectStart="{resizeEffect1.play([this]); blur.play([this])}" effectEnd="{PopUpManager.removePopUp(this);}"/>
 
 <mx:HTTPService 
-    id="serverRequest" 
-	fault="serverRequest.clearResult(true);"
-    useProxy="false" 
-	concurrency="single"
-	requestTimeout="45"
-    showBusyCursor="true"
-	result="resultHandler(event)"/>
+   id="serverRequest" 
+   fault="serverRequest.clearResult(true);"
+   useProxy="false" 
+   concurrency="single"
+   requestTimeout="45"
+   showBusyCursor="true"
+   result="resultHandler(event)"/>
+
+<mx:HTTPService 
+   id="lookupRequest" 
+   fault="lookupRequest.clearResult(true);"
+   useProxy="false" 
+   concurrency="multiple"
+   requestTimeout="10"
+   showBusyCursor="false"
+   result="lookupHandler(event)"/>
 
 	<mx:Script>
                 <![CDATA[
@@ -82,34 +91,42 @@
 		        	myData.refresh();
 				}
                                 
-                                title = functionString;
+               title = functionString;
 
-                                if (functionString == "topdomains") {
+               if (functionString == "topdomains") {
 					title = "Top domains for " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
 					colTitle = "Domain";
-                                        } else if (functionString == "topresolvers") {
-                                        title = "Top servers for " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
-                                        colTitle = "Server";
-                                        } else if (functionString == "toprrtypes") {
-                                        title = "Top rr types for " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
-                                        colTitle = "RR Type";
-                                        countTitle = "Q Count";
-                                } else if (functionString == "resolversfordomain") {
-  				  	
-                                    title = "Servers asking about " + ((winTitle == "") ? parameter : winTitle) + " - " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
-  				    colTitle = "Server"; 
-                                } else if (functionString == "domainforresolver") {
-                                title = "Queries from " + ((winTitle == "") ? parameter : winTitle) + " - " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
-                                    colTitle = "Query";
+               } else if (functionString == "topresolvers") {
+                        title = "Top servers for " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
+                        colTitle = "Server";
+               } else if (functionString == "toprrtypes") {
+                        title = "Top rr types for " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
+                        colTitle = "RR Type";
+                        countTitle = "Q Count";
+               } else if (functionString == "resolversfordomain") {
+
+                     title = "Servers asking about " + ((winTitle == "") ? parameter : winTitle) + " - " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
+                     colTitle = "Server"; 
+               } else if (functionString == "domainforresolver") {
+                     title = "Queries from " + ((winTitle == "") ? parameter : winTitle) + " - " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
+                     colTitle = "Query";
 				}
-	
-				myData.filterFunction = filterListItem;
-				myData.refresh();
 	
 				for( var i:int = 0; i < myData.length; ++i ) {
 					if (myData[i].domain == sel) { serverGrid.selectedIndex = i; }
+                    if ((functionString == "topresolvers") ||(functionString == "resolversfordomain"))
+                    {
+                        if ( myData[i].displaytext.length()< 2)
+                           myData[i].displaytext=myData[i].domain; 
+                    }
 				}
-	        	serverGrid.verticalScrollPosition = vert;
+                myData.refresh();
+                serverGrid.verticalScrollPosition = vert;
+
+                // investigate why this fails for topresolvers
+                myData.filterFunction = filterListItem;
+                myData.refresh();
+
 
 			} else {
 				myData = null;
@@ -130,6 +147,29 @@
 
 		}
 		
+   
+
+        private function lookupHandler(event:ResultEvent):void {
+
+            if (lookupRequest.lastResult.lookup != null) {
+               var dd:Boolean = lookupRequest.lastResult.lookup is ArrayCollection;
+
+               var name:String = lookupRequest.lastResult.lookup.name;
+               var ip:String = lookupRequest.lastResult.lookup.ip;
+               //title =  name + " = " + ip;
+
+               for( var i:int = 0; i < myData.length; ++i ) {
+                  if (myData[i].domain == ip) 
+                  {
+                     //title= myData[i].domain;
+                     myData[i].displaytext = name+" "; 
+                  }
+               }
+               myData.refresh();
+           }
+        }
+
+
 		private function doubleDigits(val:int): String
 		{
 		  if (val > 9) {return String(val)} else {return "0" + String(val)}
@@ -137,7 +177,7 @@
 
 
         public function TimerStart():void {
-            var myTimer:Timer = new Timer(500, 0);
+            var myTimer:Timer = new Timer(100, 0);
             myTimer.addEventListener("timer", timerHandler);
             myTimer.start();
             
@@ -173,15 +213,15 @@
                update();
         }
 
-		public function filterListItem(item:Object):Boolean {
-			
-			if ((item.displaytext.indexOf(filterText.text) > -1)) {
-				return true;
-			} else {
-				return false;
-			}
-			
-		}
+         public function filterListItem(item:Object):Boolean {
+               
+               if ((item.displaytext.indexOf(filterText.text) > -1)) {
+                        return true;
+               } else {
+                        return false;
+               }
+               
+         }
 
         public function timerHandler(event:TimerEvent):void 
         {
@@ -223,6 +263,30 @@
                //title=serverRequest.url;
                title = "loading, please wait....";
             }
+            
+            if ((functionString == "topresolvers")||(functionString == "resolversfordomain"))
+            {
+               var cnt:int = 0;
+               for( var i:int = 0; i < myData.length; ++i ) {
+                  if (myData[i].domain == myData[i].displaytext) 
+                  {
+                     var lookup:String = myData[i].domain;
+                     myData[i].displaytext = myData[i].displaytext+" "; 
+                     lookupRequest.url=parentApplication.scriptUrl + "?function=lookup&lookup=" + lookup;
+                     lookupRequest.send();
+                     if (cnt>0)
+                        break;
+                     else
+                        cnt++;
+                  }
+               }
+
+
+            }
+
+            
+            
+            
         }
 
         public function update():void {
