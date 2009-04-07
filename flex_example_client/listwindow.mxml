@@ -52,7 +52,7 @@
 	import mx.collections.Sort;
     import mx.collections.SortField;
     import mx.managers.PopUpManager;
-
+    import mx.utils.StringUtil;
 	
 	public var vert:int = 0;
 	public var sort:Sort = null;
@@ -281,14 +281,12 @@
             serverRequest.url += "&count=" + listCount.text;
             serverRequest.url += parentApplication.servers;
 
-
             if (functionString=="resolversfordomain")
-                serverRequest.url += "&domain=" + parameter;
+                serverRequest.url += "&domain=" + escape(StringUtil.trim(parameter));
             if (functionString=="domainforresolver")
-                serverRequest.url += "&resolver=" + parameter;
+                serverRequest.url += "&resolver=" + escape(StringUtil.trim(parameter));
 
-            serverRequest.url +=  "&" + Math.random();
-
+            serverRequest.url +=  "&rand=" + Math.random();
             serverRequest.send();
             //title=serverRequest.url;
             title = "loading, please wait....";
