@@ -1,0 +1,21 @@
+/*!
+ *  \mainpage DNS2db
+ *
+ *
+ *   \section intro_sec Introduction
+ *
+ * This is the DNS2db programmers documentation.
+ * This doxygen generated documention consists mainly of this page and function documentation for tracedns and dns2sqlite.
+ * 
+ * Userguides can be found on opensource.iis.se
+ *
+ * \section install_sec tracedns
+ *
+ * tracedns is a simple commandline tool that reads packets using libtrace applies berkley packet filters and outputs the packets in a friendly ascii/hex based format for dns2sqlite.
+ * All operations originate from the while loop in the main function.
+ *
+ * \section d2s_sec dns2sqlite
+ *
+ * dns2sqlite takes the output from tracedns, disects any dns packets with help of ldns and insert it into an sqlite database.
+ *  
+ **/
