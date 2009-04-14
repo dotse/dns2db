@@ -1,0 +1,22 @@
+This is the DNS2db distribution.
+
+Quick install:
+
+1. Go to the dns2db subdirectory and run 
+
+    ./configure
+    make
+    sudo make install 
+
+  (see instructions in the dns2db subdirectory for further instructions)
+  This will build and install the dns2sqlite and tracedns executables.
+    
+2. Copy the contents of the www folder to your php capable webserver 
+   (mod curl is required) then copy the .example conf files and 
+   edit them to fit your setup.
+
+
+For complete configuration instructions follow the documentation at opensource.iis.se.
+
+
+
