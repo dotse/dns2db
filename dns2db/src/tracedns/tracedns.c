@@ -1,3 +1,4 @@
+/*! \file */ 
 /* Complete libtrace skeleton program
  *
  * This libtrace skeleton includes everything you need for a useful libtrace
@@ -13,6 +14,8 @@
 
 #include "packet_handler.h"
 
+
+
 FILE *pipeh=0;
 FILE *duperr=0;
 
@@ -20,7 +23,8 @@ static void usage (char * argv0) {
    fprintf (stdout, "usage: %s [ --filter | -f bpfexp ]  [ --snaplen | -s snap ]\n\t\t[ --promisc | -p flag] [ --help | -h ] [ --libtrace-help | -H ] libtraceuri...\n", argv0);
 }
 
-// function that echo all output to stderr to both stderr and syslog
+/// function that echo all output to stderr to both stderr and syslog
+
 void echo()
 {
    char str[300];
@@ -31,6 +35,7 @@ void echo()
    }
 }
 
+/// The main funtion
 int main (int argc, char * argv []) {
    libtrace_t * trace;
    libtrace_packet_t * packet;

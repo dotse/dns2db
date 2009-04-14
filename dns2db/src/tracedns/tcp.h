@@ -1,3 +1,4 @@
+/*! \file */ 
 /*
  * Copyright (c) 2007 .SE (The Internet Infrastructure Foundation).
  *                  All rights reserved.
