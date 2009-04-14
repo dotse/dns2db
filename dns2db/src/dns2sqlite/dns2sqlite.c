@@ -27,8 +27,6 @@
  *
  */
 #include "dns2sqlite.h"
-/*! \defgroup dns2sqlite */ 
-/*@{*/
 
 static sqlite3 *G_DB = NULL;
 
@@ -455,4 +453,3 @@ main (int argc, char *argv []) {
    closelog();
    exit (res);
 }
-/*}@*/

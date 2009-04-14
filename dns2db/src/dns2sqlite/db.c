@@ -28,8 +28,6 @@
  */
 #include "db.h"
 
-/*! \ingroup dns2sqlite */ 
-/*@{*/
 
 
 static sql_stmt_t G_STMT [] = {
@@ -484,4 +482,3 @@ close_db (sqlite3 *db) {
    return SUCCESS;
 }
 
-/*}@*/
