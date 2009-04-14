@@ -1,0 +1,58 @@
+<?php
+
+########## urls for the swf and dns2db.php files
+#
+#  the default relative paths below should be fine for most users
+$swf = "dns2db.swf";
+$url = "dns2db.php";
+
+
+########## reverse lookup cache 
+# this specifies the location of the name lookup cache database
+# make sure both this file and the directory it's in is writable by the webserver user
+$database = "reversedb.db3";
+
+
+$nodes = array (  # start nodelist
+
+
+##########  nodelist   #########################################################
+# add each collector node to the $nodes array here using a line like the example below
+# make sure the 'url' is reachable by the dns2db script and that the 'name' is free of any whitespace characters
+#
+#   array( 'name' => 'x' , 'dnsname' => 'x.example.com', 'url' => 'http://x.example.comm/dns2db/dns2dbnode.php', 'displayname'=>'X', 'description'=>'the server X'),
+#   array( 'name' => 'y' , 'dnsname' => 'y.example.com', 'url' => 'http://y.example.comm/dns2db/dns2dbnode.php', 'displayname'=>'Y', 'description'=>'the server Y'),
+#   array( 'name' => 'z' , 'dnsname' => 'z.example.com', 'url' => 'http://z.example.comm/dns2db/dns2dbnode.php', 'displayname'=>'Z', 'description'=>'the server Z'),
+
+); 	# end nodelist
+
+
+$rrstats = array (  # start rrstats
+##########  rrstats   #########################################################
+#
+#  this array provides data for coloring the rrtypes display in the gui
+#  deviation controls the deviation where coloring occurs
+
+   array( 'name' => 'A' , 'percent' => '49', 'deviation' => '4'),
+   array( 'name' => 'MX' , 'percent' => '23', 'deviation' => '3'),
+   array( 'name' => 'AAAA' , 'percent' => '13', 'deviation' => '2'),
+   array( 'name' => 'NS' , 'percent' => '10', 'deviation' => '2'),
+   array( 'name' => 'TXT' , 'percent' => '1', 'deviation' => '0.5'),
+   array( 'name' => 'DS' , 'percent' => '0.9', 'deviation' => '0.5'),
+   array( 'name' => 'A6' , 'percent' => '0.8', 'deviation' => '0.5'),
+   array( 'name' => '*' , 'percent' => '0.4', 'deviation' => '.3'),
+   array( 'name' => 'SOA' , 'percent' => '0.2', 'deviation' => '.2'),
+   array( 'name' => 'SRV' , 'percent' => '0.1', 'deviation' => '0.1'),
+   array( 'name' => 'SPF' , 'percent' => '0.1', 'deviation' => '0.1'),
+   array( 'name' => 'PTR' , 'percent' => '0.1', 'deviation' => '0.1'),
+   array( 'name' => 'CNAME' , 'percent' => '0.1', 'deviation' => '0.1'),
+   array( 'name' => 'DNSKEY' , 'percent' => '0.1', 'deviation' => '0.1'),
+   array( 'name' => 'RRSIG' , 'percent' => '0.1', 'deviation' => '0.1'),
+   array( 'name' => 'NSEC' , 'percent' => '0.1', 'deviation' => '0.1'),
+                                                
+);      # end rrstats
+                                                
+                                                
+
+
+?>
