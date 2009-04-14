@@ -18,6 +18,7 @@
 		<![CDATA[
 
             import mx.managers.PopUpManager;
+    		import mx.collections.ArrayCollection;
 
 
    			public var menu:ContextMenu;
@@ -25,6 +26,7 @@
             public var serverwin:*;
             public var servers:String = "";
             public var serversTouch:int = 0;
+            public var rrstats:ArrayCollection;
 
             public function start():void {
 				var menu:ContextMenu = new ContextMenu();

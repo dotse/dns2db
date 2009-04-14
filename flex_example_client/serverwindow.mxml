@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Id: serverwindow.mxml 6 2007-05-07 09:11:42Z jakob $  -->
+
+
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" 
+	close="fadeOut.play([this]);"
+	creationComplete="TimerStart();"
+	layout="vertical" 
+	width="80" height="366"
+	title="loading, please wait..."
+	showCloseButton="true"
+	resizeEffect="resizeEffect"
+	horizontalScrollPolicy="off"
+	verticalScrollPolicy="off"
+	keyDown="windowKeyPress(event)"
+	doubleClickEnabled="true"
+	x="300"
+	y="50"
+	doubleClick="windowDoubleClick(event);"
+    backgroundColor="#D3D7D9">
+
+<mx:Resize heightFrom="366" heightTo="30" id="windowResizeEffect1" duration="500"/>
+<mx:Resize heightFrom="366" heightTo="0" id="resizeEffect1" duration="500"/>
+<mx:Resize heightFrom="0" heightTo="66" id="resizeEffect2" duration="200"/>
+<mx:Fade id="fade" alphaFrom="0" alphaTo="1" duration="500" /> 
+<mx:Blur id="blur" blurXTo="10" blurYTo="10" blurXFrom="0" blurYFrom="0" duration="500" /> 
+<mx:Fade id="fadeOut" alphaTo="0" duration="500" effectStart="{resizeEffect1.play([this]); blur.play([this])}" effectEnd="{PopUpManager.removePopUp(this);}"/>
+
+<mx:HTTPService 
+    id="serverlistRequest" 
+    fault="serverlistRequest.clearResult(true);"
+    useProxy="false" 
+	concurrency="multiple"
+	requestTimeout="45"
+    showBusyCursor="true"
+	result="resultHandler(event)"/>
+
+	<mx:Script><![CDATA[
+		import mx.collections.ArrayCollection;
+		import mx.utils.ArrayUtil;
+		import mx.rpc.events.ResultEvent;
+		import mx.events.ListEvent;
+		import mx.collections.Sort;
+        import mx.collections.SortField;
+        import mx.managers.PopUpManager;
+        import mx.controls.CheckBox;
+		
+                
+   		public var vert:int = 0;
+   		public var sort:Sort = null;
+   		public var sel:String = null;
+        public var functionString:String = null;
+        public var parameter:String = null;
+   		public var winTitle:String = '';
+   		public var server:Boolean = false;
+        public var interval:Interval = new Interval(null,0,0);
+        public var touch_count:int = -1;
+		private var expcontant:Number = 0.00000007;
+		private var intervalText:String;
+
+		[Bindable]
+		private var serverData:ArrayCollection;
+
+		[Bindable]
+   		private var colTitle:String = "";
+
+		private function resultHandler(event:ResultEvent):void 
+        {
+             title="Nodes";
+             var it:int;
+             if (serverlistRequest.lastResult.items != null) 
+             {
+                var dd:Boolean = serverlistRequest.lastResult.items.server is ArrayCollection;
+                         
+                if (dd) 
+                {
+                    serverData = serverlistRequest.lastResult.items.server;
+                    for( it = 0; it < serverData.length; ++it ) 
+                    {
+                        serverData[it].onfield = true;
+                        var checkBox:CheckBox = new CheckBox();
+                        checkBox.label = serverData[it].displayname;
+                        checkBox.move(10, 20);
+                        checkBox.width = 200;
+                        checkBox.height = 20;
+                        checkBox.id = "" + it;
+                        checkBox.addEventListener(MouseEvent.CLICK, clickBox);
+
+                        //.click="data.onfield=!data.onfield; parentApplication.serverwin.clickBox(0);";
+                        checkBox.selected=serverData[it].onfield;
+                        addChild(checkBox);
+                    }
+                
+                } else {
+                    var rr:Boolean = serverlistRequest.lastResult.items.rrtype is ArrayCollection;
+                             
+                    if (rr) 
+                    {
+                        parentApplication.rrstats = serverlistRequest.lastResult.items.rrtype;
+                       
+                    } else {
+                        title="no array";
+                        serverData = new ArrayCollection([{position: serverlistRequest.lastResult.items.server.attribute("name"), qcount: '123'}]);
+                    }
+                }
+
+                if (sort != null) {
+                    serverData.sort = sort;
+                    serverData.refresh();
+                }
+
+                serverData.refresh();
+                //serverGrid.verticalScrollPosition = vert;
+             } 
+             else { serverData = null; }
+		}
+		
+		private function doubleDigits(val:int): String
+		{
+            if (val > 9) {return String(val)} else {return "0" + String(val)}
+		}
+
+
+        public function TimerStart():void {
+            serverlistRequest.url=parentApplication.scriptUrl + "?function=nodelist";
+            serverlistRequest.url +=  "&" + Math.random();
+            serverlistRequest.send();
+
+            serverlistRequest.url=parentApplication.scriptUrl + "?function=rrstats";
+            serverlistRequest.url +=  "&" + Math.random();
+            serverlistRequest.send();
+
+            x = 10; y = 10; showCloseButton=false; 
+
+            fade.play([this]);
+        }
+
+        private function windowDoubleClick(event: MouseEvent):void {
+            if ((event.stageY-y) < 30) {
+                windowResizeEffect1.heightFrom = 366;
+                if (height < 50) {
+                    windowResizeEffect1.play([this],true);
+                } else {
+                    windowResizeEffect1.play([this],false);
+                }
+            }
+        }
+
+        private function windowKeyPress(event:KeyboardEvent):void {
+        }
+
+         
+        private function copyToClipBoard(event:ListEvent):void {
+           System.setClipboard(event.itemRenderer.data.displaytext);
+        }
+
+        public function clickBox(evt:Event):void {
+            serverData[evt.currentTarget.id].onfield=!serverData[evt.currentTarget.id].onfield;
+            var str:String = "&nodes=";
+            var sep:String = "";
+            for( var it:int = 0; it < serverData.length; ++it ) 
+            {
+                if (serverData[it].onfield == true)
+                {
+                    str = str + sep + serverData[it].name;
+                    sep=",";
+                }
+            }
+            parentApplication.servers = str;
+            //title=str;
+            parentApplication.serversTouch++;
+        }
+        public function dclickBox(idx:int):void {
+            var str:String = "&nodes=";
+            var sep:String = "";
+            for( var it:int = 0; it < serverData.length; ++it )
+            {
+                if (serverData[it].onfield == true)
+                {
+                    str = str + sep + serverData[it].name;
+                    sep=",";
+                }
+            }
+            parentApplication.servers = str;
+            parentApplication.serversTouch++;
+        }
+
+        private function cloneWin(event:MouseEvent):void {
+            parentApplication.openWindow(functionString, null, server, "");
+        }
+		]]>
+	</mx:Script>
+</mx:TitleWindow>

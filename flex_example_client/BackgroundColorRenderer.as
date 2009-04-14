@@ -47,8 +47,42 @@ public class BackgroundColorRenderer extends DataGridItemRenderer
 		//if (data[column.dataField]
 		{
 			// TextFields can draw solid color backgrounds.  Can't do gradients though
-			background = true;
-			backgroundColor = 0xFF0000 | ((0xfe00*(100-data[column.dataField])/100)&0xff00) | ((0xfe*(100-data[column.dataField])/100)&0xff);
+			background = false;
+			
+            var it:int;
+            for( it = 0; it < dataGrid.parentApplication.rrstats.length; ++it ) 
+            {
+                if (dataGrid.parentApplication.rrstats[it].name==data['displaytext'])
+                {
+    				var normal:Number = dataGrid.parentApplication.rrstats[it].percent;
+    				var dev:Number = dataGrid.parentApplication.rrstats[it].deviation;
+    				
+    				if (dev >=0)
+    				{
+        				var val:Number = data['percentage'];
+        				var diff:Number = (val-normal)/dev;
+        				if (diff > 5)
+        				    diff = 5;
+        				if (diff < -5)
+        				    diff = -5;
+        				
+        				if (diff<0)
+        				{
+        				    diff = - diff;
+        				    if (diff<1)
+        				        diff = 0;
+        					backgroundColor = ((0xfe0000*(5-diff)/5)&0xff0000) | 0xffff;
+        				}
+        				else
+        				{
+        				    if (diff<1)
+        				        diff = 0;
+        					backgroundColor = ((0xfe*(5-diff)/5)&0xff) | ((0xfe00*(5-diff)/5)&0xff00) | 0xff0000;
+        				}
+			            background = true;
+                    }
+                }
+            }
 		}
 		//else
 			//background = false;
