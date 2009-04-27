@@ -1,9 +1,0 @@
-<?php
-
-// Change the DNS2DB path below to the path of your db-files.
-// $day has the format YYYYMMDD and
-// $time has the format HHMM
-
-$database = "/dns2db_log_directory/".$day."/G.ns.se-".$day."".$time.".db";
-
-?>
