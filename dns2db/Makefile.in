@@ -169,6 +169,10 @@ target_vendor = @target_vendor@
 SUBDIRS = src
 bin_SCRIPTS = bin/dns2db.pl
 AUTOMAKE_OPTIONS = foreign
+EXTRA_DIST = etc/dns2db.conf bin/dns2db.pl bin/dns2db.sh \
+	www/dns2db.php www/dns2db.swf www/dns2db_conf.php.example \
+	www/dns2dbnode.php www/dns2dbnode_conf.php.example \
+	www/index.php www/reversedb.db3 dns2db_template
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -379,6 +383,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
+	$(mkdir_p) $(distdir)/bin $(distdir)/etc $(distdir)/www
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \
@@ -625,6 +630,9 @@ install-exec-hook:
 	       cp bin/dns2db.sh /etc/init.d/; \
 	   fi;\
 	fi;
+
+dns2db_template: tabledefs.sql
+	sqlite3 dns2db_template <tabledefs.sql
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
