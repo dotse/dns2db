@@ -47,6 +47,13 @@ AC_TYPE_UINT8_T
 AC_FUNC_REALLOC
 AC_FUNC_STRFTIME
 AC_CHECK_FUNCS([bzero regcomp strtoul])
+AC_CHECK_FUNCS([dup2])
+AC_CHECK_FUNCS([mkdir])
+AC_CHECK_FUNCS([strdup])
+AC_CHECK_FUNCS([strerror])
+AC_CHECK_HEADERS([fcntl.h])
+AC_CHECK_HEADERS([syslog.h])
+AC_HEADER_STDBOOL wanted by: src/dns2sqlite/db_access.c:475
 
 # Language used for further checks.
 AC_LANG([C])
