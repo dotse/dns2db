@@ -2,13 +2,10 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT([DNS2db], [2.0], [bugs@iis.se], [DNS2db])
+AC_INIT([DNS2db], [2.1], [niclas.rosell@iis.se], [DNS2db])
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADER([config.h])
 AC_CANONICAL_TARGET
-#AM_INIT_AUTOMAKE(tracedns,2.0)
-#AM_INIT_AUTOMAKE(dns2sqlite,2.0)
-#AM_INIT_AUTOMAKE(DNS2db,2.0)
 AM_INIT_AUTOMAKE
 
 # Platform-specific tweaks
@@ -53,7 +50,6 @@ AC_CHECK_FUNCS([strdup])
 AC_CHECK_FUNCS([strerror])
 AC_CHECK_HEADERS([fcntl.h])
 AC_CHECK_HEADERS([syslog.h])
-AC_HEADER_STDBOOL wanted by: src/dns2sqlite/db_access.c:475
 
 # Language used for further checks.
 AC_LANG([C])
