@@ -1,0 +1,44 @@
+.TH tracedns 1 LOCAL
+
+.SH NAME
+
+tracedns - the libtrace based frontend for dns2sqlite (part of DNS2db) 
+
+.SH SYNOPSIS
+.B tracedns 
+ [ \-\-filter | \-f bpfexp ] df [ \-\-snaplen | \-s snap ] [ \-\-promisc | \-p flag] [ \-\-help | \-h ] 
+ [ \-\-libtrace\-help | \-H ] libtraceuri...
+
+.SH AVAILABILITY
+Linux / BSD 
+.SH DESCRIPTION
+tracedns is a networksniffer that uses the libtrace library to prepare packets for dns2sqlite.
+.SH OPTIONS
+.TP 5
+
+--filter | -f
+specifies a bpf filter to run on all incoming packet usually something like "port 53"
+
+.TP
+--snaplen | -s 
+specifies the snaplength
+
+.TP
+--promisc | -p flag
+set the interface in promisc mode
+
+.TP
+--help | -h
+prints usage help
+
+.TP
+--libtrace-help | -H
+provides help about available libtraceuri's
+
+.TP
+libtraceuri
+see "tracedns -H" for the available libtraceuris. 
+Examples are "pcapint:eth0" or pcapfile:/foo/bar.pcap 
+
+.SH AUTHOR
+\ .se stiftelsen - opensource.iis.se

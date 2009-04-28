@@ -16,6 +16,9 @@ EXTRA_DIST += www/index.php
 EXTRA_DIST += www/reversedb.db3
 EXTRA_DIST += dns2db_template
 
+man1_MANS  = man/dns2sqlite.1
+man1_MANS += man/tracedns.1
+
 install-exec-hook:
 	@if [ -e /etc/dns2db.conf ] ; then echo "/etc/dns2db.conf not replaced"; else cp etc/dns2db.conf /etc/dns2db.conf; fi;\
 	if [ -e /etc/init.d/ ]; then\

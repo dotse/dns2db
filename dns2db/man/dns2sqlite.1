@@ -1,0 +1,47 @@
+.TH dns2sqlite 1 LOCAL
+
+.SH NAME
+.B dns2sqlite
+- a tool for sniffing DNS traffic and outputting searchable sqlite databases (part of DNS2db) 
+.SH SYNOPSIS
+.B dns2sqlite
+[ \-\-help | -h ] [ \-\-version | -v ]
+[ \-\-template | -t template ] [ \-\-queries_only | -q ]
+[ \-\-replies_only | -r ] [ \-\-database | -d dbf ] [ \-\-db_overwrite | -o ] 
+[ \-\-interval | -i min ] [ \-\-db_folder | -f dir ]
+.SH AVAILABILITY
+Linux / BSD 
+.SH DESCRIPTION
+.B dns2sqlite
+is a part of the DNS2db distribution. This command converts networkpackets to an sqlite3 database.
+The database format is specified in tabledefs.sql that is supplied with the dns2db distribution.
+.SH OPTIONS
+.TP 5
+.B --help | -h
+specifies a bpf filter to run on all incoming packet usually something like "port 53"
+.TP
+.B --version | -v 
+prints the current version
+.TP
+.B --template | -t template
+point this to the database template dns2db_template if you have built the dns2sqlite from svn you may have to create the template file using 'sqlite3 dns2db_template <tabledefs.sql'.
+.TP
+.B --queries_only | -q
+only store query packets
+.TP
+.B --replies_only | -r
+only store reply packets
+.TP
+.B --database | -d
+specifies the base name for the database files
+.TP
+.B --db_overwrite | -o
+overwrites existing database files
+.TP
+.B --interval | -i min
+specifies the split interval in minutes.  
+.TP
+.B --db_folder | -f dir
+specifies the destination database folder
+.SH AUTHOR
+\ .se stiftelsen - opensource.iis.se
