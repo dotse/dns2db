@@ -1,17 +1,17 @@
 README
 
-Dns2db is a system for gathering and storing DNS messages. The DNS
+DNS2db is a system for gathering and storing DNS messages. The DNS
 messages are either captured directly from a network interface, 
 from the "wire", or from a previously saved file of network traffic.
 The DNS messages are then decoded and stored in one or more sqlite3
-databases for later analysis. Dns2db is designed so that it can run 
+databases for later analysis. DNS2db is designed so that it can run 
 unattended as long as there is sufficient disk space for the database
 file(s).
 
 
 Architecture
 
-Dns2db consists of two parts; tracedns och dns2sql. tracedns captures
+DNS2db consists of two parts; tracedns and dns2sqlite. tracedns captures
 network packets, extract the DNS messages and output CSV strings
 consisting of a timestamp, IP-adresses, protocol information and the
 actual DNS message. The later is encoded as a string of hexadecimal
@@ -24,10 +24,11 @@ to replace the dns2sqlite backend with something that may be more
 appropriate.
 
 
-Running dns2db
+Running DNS2db
 
-To run dns2db either edit the configuration file and use the dns2db.sh
-start/stop script or run it directly on the command line, for example:
+To run DNS2db edit the configuration file and run dns2db.pl 
+or the dns2db.sh start/stop script if it has been installed.
+DNS2db can also be run directly on the command line, for example:
 
    tracedns -f 'port 53' pcapint:en0 
    | dns2sqlite -t template_db.db -d dns2db -f /tmp -i 5

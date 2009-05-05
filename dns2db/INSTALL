@@ -1,10 +1,10 @@
 How to install dns2db
 
-DEPENDANCIES
+DEPENDENCIES
 ============
-- libtrace-3.0.4 (http://research.wand.net.nz/software/libtrace.php)
-- ldns-1.3.0 (http://www.nlnetlabs.nl/projects/ldns)
-- sqlite-3.0.4 (http://www.sqlite.org/)
+- libtrace-3.0.4 ( http://research.wand.net.nz/software/libtrace.php )
+- ldns-1.3.0     ( http://www.nlnetlabs.nl/projects/ldns )
+- sqlite-3.4.0   ( http://www.sqlite.org/ )
 
 INSTALLATION
 ============
@@ -56,14 +56,27 @@ The "template_db_name" is later given as a command line parameter or
 configuration option to dns2sqlite. The template database may be moved
 or copied to any location readable by the dns2sqlite process.
 
+If you have downloaded a tar distribution of DNS2db this template is 
+supplied as "dns2db_template" in the root of the distribution. 
+
 
 Optional start/stop script
 
 A start/stop script, bin/dns2db.sh, with an associated configuration
-file, etc/dns2db.conf, is provided. Install the script by copying the
-etc/dns2db.conf file to /etc and the bin/dns2db.sh script to a suitable
-location. The script may be used stand-alone to start and stop dns2db
-or used as an init.d/rc-script.
+file, , is provided. Install the script by copying the
+bin/dns2db.sh script to a suitable location. The script may be used 
+stand-alone to start and stop dns2db or used as an init.d/rc-script.
 
-The basic installation is now done.
+The basic installation is now done and after editing etc/dns2db.conf 
+DNS2db can be started by:
+
+sudo dns2db.pl 
+
+and stopped by
+
+sudo dns2db.pl stop
+
+or by using the start/stop script.
+
+
 
