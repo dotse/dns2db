@@ -6,7 +6,8 @@ tracedns - the libtrace based frontend for dns2sqlite (part of DNS2db)
 
 .SH SYNOPSIS
 .B tracedns 
- [ \-\-filter | \-f bpfexp ] df [ \-\-snaplen | \-s snap ] [ \-\-promisc | \-p flag] [ \-\-help | \-h ] 
+ [ \-\-filter | \-f bpfexp ] [ \-\-snaplen | \-s snap ] 
+ [ \-\-promisc | \-p flag] [ \-\-help | \-h ] 
  [ \-\-libtrace\-help | \-H ] libtraceuri...
 
 .SH AVAILABILITY
@@ -21,7 +22,7 @@ specifies a bpf filter to run on all incoming packet usually something like "por
 
 .TP
 --snaplen | -s 
-specifies the snaplength
+specifies the snaplength. Cuts all packets at snaplength ignoring any bytes after the specified lenght. 
 
 .TP
 --promisc | -p flag
@@ -37,8 +38,14 @@ provides help about available libtraceuri's
 
 .TP
 libtraceuri
-see "tracedns -H" for the available libtraceuris. 
-Examples are "pcapint:eth0" or pcapfile:/foo/bar.pcap 
+see "tracedns -H" for the available libtraceuri's. 
+Examples are "pcapint:eth0" or "pcapfile:/foo/bar.pcap" 
+
+.SH EXAMPLES
+.TP
+Listens on interface eth0 for any packets on port 53 and outputs the data to stdout.
+
+tracedns -f "port 53" pcapint:eth0 
 
 .SH AUTHOR
-\ .se stiftelsen - opensource.iis.se
+\ .SE (The Internet Infrastructure Foundation) - opensource.iis.se
