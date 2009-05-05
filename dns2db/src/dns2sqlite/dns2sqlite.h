@@ -39,7 +39,7 @@
 #include "line_parser.h"
 
 
-#define VERSION "DNS2SQLITE 2.0"
+#define DNS2SQLITE_VERSION "DNS2SQLITE "VERSION
 #define PARTITION_INTERVAL_SECS 900L;
 #define NUM_BASE 10
 

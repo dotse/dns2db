@@ -291,7 +291,7 @@ mainloop (int argc, char *argv []) {
    while ((c = getopt_long (argc, argv, "hvt:qrd:n:oi:f:", long_opts, &opt_idx)) != -1) {
       switch (c) {
          case 'v':
-            fprintf (stdout, "%s\n", VERSION); // VERSION defined in global.h
+            fprintf (stdout, "%s\n", DNS2SQLITE_VERSION); // VERSION defined in dns2sqlite.h
             exit (0);
             break;
          case 't':

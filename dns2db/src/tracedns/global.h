@@ -48,7 +48,7 @@
 #include <stdarg.h>
 
 #ifndef TRACEDNS_VERSION
-#define TRACEDNS_VERSION "TRACEDNS 2.0"
+#define TRACEDNS_VERSION "TRACEDNS "VERSION
 #endif
 
 // Hack for Linux which does not include this in ethernet.h/ethertypes.h

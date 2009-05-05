@@ -38,6 +38,7 @@
 #include <syslog.h>
 #include <stdarg.h>
 #include "trace_data.h"
+#include "../../config.h"
 
 typedef enum Bool {FALSE, TRUE} bool_t;
 typedef enum Exit_status {FAILURE, SUCCESS} exit_status_t;
