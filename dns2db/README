@@ -39,15 +39,15 @@ in a subdirctory of /tmp named "<datestamp>". The time- and datestamps
 are based on the date and time a packet was captured. You may need to
 use sudo (or su) to get permission to read from the given network source.
 
-The "-f" paratemer to tracedns is a BPF filer string. If it is not given,
+The "-f" parameter to tracedns is a BPF filter string. If it is not given,
 tracedns will capture every packet from the given source (in this case,
 en0). However, dns2sqlite basically assume that it is given DNS messages 
 and thus a 'port 53' BPF filer is appropriate. If dns2sqlite fail to
 parse a message as a correct DNS message then that message will be 
 stored as an "unhandled message". 
 
-The "-i" parameter to dns2sqlite tell dns2sqlite to create a new 
-database for every 5 minutes of data based on the timestamp from the
+The "-i x" parameter to dns2sqlite tell dns2sqlite to create a new 
+database for every x minutes of data based on the timestamp from the
 captured packets. 
 
 For other options and how to create the necessary template database
