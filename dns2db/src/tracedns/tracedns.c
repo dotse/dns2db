@@ -41,7 +41,7 @@ int main (int argc, char * argv []) {
    libtrace_packet_t * packet;
    libtrace_filter_t * filter = NULL;
    int snaplen = -1;
-   int promisc = 1; // promisc < 1 = off, promisc >= 1 on.
+   int promisc = 2; // promisc < 1 = off, promisc >= 1 on.
 
    int pipenos[2];
    int flags;
@@ -129,11 +129,19 @@ int main (int argc, char * argv []) {
          if (trace_config (trace, TRACE_OPTION_SNAPLEN, &snaplen)) {
             trace_perror (trace, "ignoring: ");
          }
-      if (promisc != -1) {
+      if (promisc == 2) {
+         promisc = 1;
          if (trace_config (trace, TRACE_OPTION_PROMISC, &promisc)) {
-            trace_perror (trace, "ignoring: ");
+            trace_get_err(trace); 
          }
       }
+      else
+      {
+         if (trace_config (trace, TRACE_OPTION_PROMISC, &promisc)) {
+            trace_perror (trace, "ignoring a problem setting promisc mode. libtrace output: ");
+         }
+      }
+      
 
       if (trace_start (trace)) {
          trace_perror (trace, "Starting trace");
