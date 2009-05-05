@@ -1,0 +1,90 @@
+Install and configure the Flex GUI
+==================================
+
+The GUI is provided as a precompiled binary and also in source format. The 
+binary is platform-independent and will run on any Flash player with version 9 
+or later. Since DNS2db is capable of using several collector servers and 
+aggregate the results in the GUI. The GUI code is split in two parts, one simple
+script on each collector node for accessing the databases and one set of scripts
+for querying the collector nodes and presenting the Flash GUI. The naming of the
+files are fairly simple. All files beginning with dns2dbnode* should be 
+installed on each collector server and the rest of the files is for the 
+GUI server.
+
+The PHP files are available in the folder dns2db/www
+
+Requirements for the GUI
+========================
+
+Collector Server
+
+    * SQLite3 >=3.4.x
+    * Apache webserver (any recent version)
+    * PHP (version that supports PDO_sqlite)
+    * PDO_sqlite >=1.0.1 (for PHP to use sqlite3 databases)
+    * packetfiltering and secure login to the webserver to restrict access 
+
+GUI Server
+
+    * SQLite3 >=3.4.x
+    * Apache webserver (any recent version)
+    * PHP (version that supports PDO_sqlite)
+    * PDO_sqlite >=1.0.1 (for PHP to use sqlite3 databases)
+    * PHP cURL
+    * packetfiltering and secure login to the webserver to restrict access 
+
+
+
+Install the php-xml backend on a collector node
+===============================================
+
+Copy the files dns2dbnode.php and dns2dbnode_conf.php.example to a directory
+served by the webserver on the collector node.
+Copy dns2dbnode_conf.php.example to dns2dbnode_conf.php and edit the file.
+
+You need to change the path and the beginning of filename to match parameters
+configured in /etc/dns2db.conf.
+
+Example dns2dbnode_conf.php:
+
+// Change the DNS2db path to your db-files and the filename prefix 
+(SERVER in example below).
+
+$database = "/tmp/DNS2db/".$day."/SERVER-".$day."".$time.".db";
+
+If all is well you should now be able to reach the xml backend on the collector
+node. dns2dbnode.php does not produce xml when called without parameters. If you
+would like to test the script without the GUI use this URL: (Replace the date &
+time)
+
+http://servername/dns2dbnode.php?function=topresolvers&day=20090324&time=1500&count=2
+
+You should recieve XML output if all went well. 
+This must work before we install the GUI.
+
+
+Install the Flex GUI frontend
+=============================
+
+All the needed GUI files are distributed with DNS2db in the www directory.
+
+Below commands will set up the GUI directly under the webserver document root. 
+You may want to install in a separate directory eg, dns2db. Adjust accordingly.
+
+$ cd dns2db/www
+$ cp dns2db.php $DOCUMENTROOT/
+$ cp dns2db_conf.php.example $DOCUMENTROOT/dns2db_conf.php
+$ cp dns2db.swf $DOCUMENTROOT/
+$ cp index.php $DOCUMENTROOT/
+$ cp reversedb.db3 $DOCUMENTROOT/
+$ chmod 755 $DOCUMENTROOT/reversedb.db3
+$ chown httpd:httpd $DOCUMENTROOT/reversedb.db3  (where httpd is the user 
+                                                  the webserver runs as)
+
+In dns2db_conf.php, edit the nodelist to include the URL of the collector nodes.
+(If you are not running http will need to change this as well) 
+If everything is well, you should be able ro reach the GUI from:
+
+http://SERVER/index.php
+
+DONE!!! 

@@ -78,5 +78,5 @@ sudo dns2db.pl stop
 
 or by using the start/stop script.
 
-
+To use the flash gui se the GUI_INSTALL file
 

@@ -15,6 +15,7 @@ EXTRA_DIST += www/dns2dbnode_conf.php.example
 EXTRA_DIST += www/index.php  
 EXTRA_DIST += www/reversedb.db3
 EXTRA_DIST += dns2db_template
+EXTRA_DIST += GUI_INSTALL
 
 man1_MANS  = man/dns2sqlite.1
 man1_MANS += man/tracedns.1

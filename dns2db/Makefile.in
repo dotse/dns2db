@@ -48,7 +48,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno configure.status.lineno
-mkinstalldirs = $(SHELL) $(install_sh) -d
+mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)"
@@ -175,7 +175,7 @@ AUTOMAKE_OPTIONS = foreign
 EXTRA_DIST = etc/dns2db.conf bin/dns2db.pl bin/dns2db.sh \
 	www/dns2db.php www/dns2db.swf www/dns2db_conf.php.example \
 	www/dns2dbnode.php www/dns2dbnode_conf.php.example \
-	www/index.php www/reversedb.db3 dns2db_template
+	www/index.php www/reversedb.db3 dns2db_template GUI_INSTALL
 man1_MANS = man/dns2sqlite.1 man/tracedns.1
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
