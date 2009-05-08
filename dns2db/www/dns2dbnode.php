@@ -146,8 +146,9 @@ if (!isset($_GET['function'])) {
 
 }else if ($_GET['function'] == 'resolversfordomain') {
 
-	$stmt = $dbh->prepare("select count(id)/5 as qcount, src_addr as domain from q where trim (rr_lvl2dom || rr_lvl1dom, '.') = \"". 
-$_GET['domain'] ."\" group by domain order by qcount desc".$limit);
+	$lvl1dom = preg_match("/^(.*[.])([^.]*)$/", $_GET['domain'] , $matches);
+	$sql = "select count(id)/5 as qcount, src_addr as domain from q where rr_lvl2dom = '".$matches[1]."' and rr_lvl1dom = '".$matches[2].".' group by domain order by qcount desc".$limit;
+	$stmt = $dbh->prepare($sql);
         $stmt->execute();
 
 }else if ($_GET['function'] == 'domainforresolver') {
