@@ -87,7 +87,8 @@ tcp_delete_stream_aux (list_t h, list_t curr, tcp_stream_t *st) {
       else {
          next = list_delete_head (curr);
          list_set_next (prev, next);
-         list_set_prev (next, prev);
+         if (next)
+            list_set_prev (next, prev);
          return h;
       }
    }

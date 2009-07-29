@@ -209,7 +209,7 @@ build_tcp_stream (
 // --- get_tcp -----------------------------------------------------------------
 uint8_t *
 get_tcp (libtrace_tcp_t *tcp, tcp_stream_t *st, uint32_t *rest) {
-   return (tcp->fin == 1 && tcp->rst) == 0 
+   return ((tcp->fin == 1) && (tcp->rst == 0)) 
           ? tcp_get_stream_data (st, rest) 
           : NULL;
 }
