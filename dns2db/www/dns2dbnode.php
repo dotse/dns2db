@@ -85,14 +85,29 @@ if (isset($_GET['count']))
 	$count = $_GET['count'];
 $limit = " limit ".$count;
 
-if (!file_exists("dns2dbnode_conf.php"))
-{
-    error_log("[dns2db] copy dns2dbnode_conf.php.example to dns2dbnode_conf.php and check it's configuration");
-    exit();
-}
-        
+$database = "";
 
-include('dns2dbnode_conf.php');
+if (file_exists("dns2dbnode_conf.php"))
+{
+    include('dns2dbnode_conf.php');
+}
+else
+{
+    if (file_exists("/etc/dns2db.conf"))
+    {
+        $server = trim(`cat /etc/dns2db.conf |sed "/^server[ ]*=.*$/!d" |sed "s/server[ ]*=[ ]*// ;s/^\"// ; s/\"[ ]*$//"`);
+        $logdir = trim(`cat /etc/dns2db.conf |sed "/^destdir[ ]*=.*$/!d" |sed "s/destdir[ ]*=[ ]*// ;s/^\"// ; s/[ ]$//g ; s/\"$// ; s/\/$//"`);
+
+        $database = $logdir."/".$day."/$server-".$day."".$time.".db";
+    }
+    else
+    {
+        error_log("[dns2db] copy dns2dbnode_conf.php.example to dns2dbnode_conf.php and check it's configuration or create /etc/dns2db.conf");
+        exit();
+    }
+}
+
+
 header("content-type: text/xml");
 
 // Change the DNS2DB path below to the path of your db-files.
