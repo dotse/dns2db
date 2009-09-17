@@ -71,6 +71,7 @@ create table q (
    extended_rcode integer,				-- should be 0
    version integer,					-- edns version should be 0
    z integer,						-- edns zero for future expansion
+   udp_size integer,					-- edns UDP payload size
 
    qd_count integer,
    an_count integer,
@@ -140,6 +141,7 @@ create table dns_header (
    extended_rcode integer,
    version integer,
    z integer,
+   udp_size integer,
    qd_count integer,
    an_count integer,
    ns_count integer,

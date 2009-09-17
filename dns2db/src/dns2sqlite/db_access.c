@@ -483,25 +483,31 @@ insert_dns_header (sqlite3_stmt *ps, sqlite_int64 trace_id, ldns_pkt *pdns) {
    {
       rc = sqlite3_bind_int (ps, 13, ldns_pkt_edns_do (pdns));
       if (rc != SQLITE_OK) {
-         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter.");
+         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter e13.");
          return FAILURE;
       }
       
       rc = sqlite3_bind_int (ps, 14, ldns_pkt_edns_extended_rcode (pdns));
       if (rc != SQLITE_OK) {
-         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter.");
+         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter e14.");
          return FAILURE;
       }
       
       rc = sqlite3_bind_int (ps, 15, ldns_pkt_edns_version (pdns));
       if (rc != SQLITE_OK) {
-         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter.");
+         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter e15.");
          return FAILURE;
       }
       
       rc = sqlite3_bind_int (ps, 16, ldns_pkt_edns_z (pdns) & 0x7fff);
       if (rc != SQLITE_OK) {
-         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter.");
+         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter e16.");
+         return FAILURE;
+      }
+
+      rc = sqlite3_bind_int (ps, 17, ldns_pkt_edns_udp_size(pdns));
+      if (rc != SQLITE_OK) {
+         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter e17.");
          return FAILURE;
       }
       
@@ -511,47 +517,52 @@ insert_dns_header (sqlite3_stmt *ps, sqlite_int64 trace_id, ldns_pkt *pdns) {
    {
       rc = sqlite3_bind_int (ps, 13, 0);
       if (rc != SQLITE_OK) {
-         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter.");
+         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter 13.");
          return FAILURE;
       }
       rc = sqlite3_bind_int (ps, 14, 0);
       if (rc != SQLITE_OK) {
-         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter.");
+         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter 14.");
          return FAILURE;
       }
       rc = sqlite3_bind_int (ps, 15, 0);
       if (rc != SQLITE_OK) {
-         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter.");
+         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter 15.");
          return FAILURE;
       }
       rc = sqlite3_bind_int (ps, 16, 0);
       if (rc != SQLITE_OK) {
-         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter.");
+         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter 16.");
+         return FAILURE;
+      }
+      rc = sqlite3_bind_int (ps, 17, 0);
+      if (rc != SQLITE_OK) {
+         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter 17.");
          return FAILURE;
       }
    }
    
-   rc = sqlite3_bind_int (ps, 17, ldns_pkt_qdcount (pdns));
+   rc = sqlite3_bind_int (ps, 18, ldns_pkt_qdcount (pdns));
    if (rc != SQLITE_OK) {
-      d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter.");
+      d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter 18.");
       return FAILURE;
    }
    
-   rc = sqlite3_bind_int (ps, 18, ldns_pkt_ancount (pdns));
+   rc = sqlite3_bind_int (ps, 19, ldns_pkt_ancount (pdns));
    if (rc != SQLITE_OK) {
-      d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter.");
+      d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter 19.");
       return FAILURE;
    }
    
-   rc = sqlite3_bind_int (ps, 19, ldns_pkt_nscount (pdns));
+   rc = sqlite3_bind_int (ps, 20, ldns_pkt_nscount (pdns));
    if (rc != SQLITE_OK) {
-      d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter.");
+      d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter 20.");
       return FAILURE;
    }
    
-   rc = sqlite3_bind_int (ps, 20, ldns_pkt_arcount (pdns));
+   rc = sqlite3_bind_int (ps, 21, ldns_pkt_arcount (pdns));
    if (rc != SQLITE_OK) {
-      d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter.");
+      d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter 21.");
       return FAILURE;
    }
    
@@ -850,10 +861,22 @@ insert_dns_query_header (sqlite3_stmt *ps, int *paranum, ldns_pkt *t) {
          d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter.");
          return FAILURE;
       }
+
+      rc = sqlite3_bind_int (ps, (*paranum)++, ldns_pkt_edns_udp_size(t));
+      if (rc != SQLITE_OK) {
+         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter.");
+         return FAILURE;
+      }
+
    }
    else
    {
       // bind zeros as its not an edns0 packet
+      rc = sqlite3_bind_int (ps, (*paranum)++, 0);
+      if (rc != SQLITE_OK) {
+         d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter.");
+         return FAILURE;
+      }
       rc = sqlite3_bind_int (ps, (*paranum)++, 0);
       if (rc != SQLITE_OK) {
          d2log (LOG_ERR|LOG_USER, "Could not bind value to parameter.");
