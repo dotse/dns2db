@@ -67,6 +67,7 @@
 	private var expcontant:Number = 0.00000007;
     private var intervalText:String;
     private var expandedTitle:String;
+    private var previousRequests:Array = new Array();
 
 	[Bindable]
 	private var myData:ArrayCollection;
@@ -79,13 +80,29 @@
                 
 	private function resultHandler(event:ResultEvent):void {
 		if (serverRequest.lastResult.items != null) {
-			var dd:Boolean = serverRequest.lastResult.items.item is ArrayCollection;
+		    var server:* = serverRequest.lastResult.items.status.node;
+			var dd:Boolean = server is ArrayCollection;
+			if (dd) 
+			{
+		        parentApplication.serverwin.setStatus(title,7)
+			    var it:int;
+                for( it = 0; it < server.length; ++it )
+                {
+                    parentApplication.serverwin.setStatus(server[it].name,server[it].result);
+                }
+			} 
+			else 
+			{
+                parentApplication.serverwin.setStatus(server.name,server.result);
+            }
+
+			dd = serverRequest.lastResult.items.item is ArrayCollection;
 			if (dd) {
 				myData = serverRequest.lastResult.items.item;
 			} else {
-				myData = new ArrayCollection([{ position: serverRequest.lastResult.items.item.position, 
-				                                qcount: serverRequest.lastResult.items.item.qcount, 
-				                                domain: serverRequest.lastResult.items.item.domain, 
+				myData = new ArrayCollection([{ position:    serverRequest.lastResult.items.item.position, 
+				                                qcount:      serverRequest.lastResult.items.item.qcount, 
+				                                domain:      serverRequest.lastResult.items.item.domain, 
 				                                displaytext: serverRequest.lastResult.items.item.displaytext}]);
 			}
 			
@@ -258,8 +275,24 @@
         if (height < 50) 
               return;
 
+        var d:Date = new Date();
+        d.getTime();
+        if ( previousRequests.length > 0 )
+        {
+            var diff:int = previousRequests[0] - d.getTime() + 2000;
+            if (diff < 0)
+                previousRequests.shift();
+        }
+
         if ((touch_count != interval.touch_count) || (servers_touch_count != parentApplication.serversTouch))
         {
+            if ( previousRequests.length > 3 )
+                return;
+
+            
+            previousRequests.push(d.getTime());
+    
+        
             serverRequest.cancel();
             myData = new ArrayCollection();
             idate.selectedDate = interval.Datum;

@@ -286,9 +286,12 @@ foreach($valid as $i) {
 
 ##############  use multi curl to get result from all servers
 $cha = array();
+$success = array();
+$count = 0;
 foreach($nodearray as $i) {
     $ch = curl_init();
-    array_push($cha,$ch);
+    $success[$count] = "0";
+    $cha[$count++] = $ch;
     curl_setopt($ch,CURLOPT_URL,$i['url'].$params);
     curl_setopt($ch,CURLOPT_RETURNTRANSFER,TRUE);
     curl_setopt($ch,CURLOPT_HEADER,0);
@@ -315,14 +318,16 @@ while ($active && $mrc == CURLM_OK) {
     }
 }
 $res = Array();
+$count = 0;
 //close the handles
 foreach($cha as $ch) {
-    array_push($res,curl_multi_getcontent($ch));
+    $res[$count++] = curl_multi_getcontent($ch);
     curl_multi_remove_handle($mh, $ch);
 }
 curl_multi_close($mh);
 
 # grab all results
+$count = 0;
 foreach($res as $xmlstring) {
     try
     {
@@ -330,6 +335,7 @@ foreach($res as $xmlstring) {
 
     	foreach ($xml as $item)
     	{
+    	    $success[$count]="1";
 	        $dom =   $item->domain;
 	        $count = $item->qcount;
 	        $disp =  $item->displaytext;
@@ -340,6 +346,7 @@ foreach($res as $xmlstring) {
     catch (Exception $e)
     {
     }
+    $count++;
 }
 
 
@@ -372,5 +379,13 @@ while ($row = $sel->fetch()) {
     echo "    <displaytext>".$dom."</displaytext>\n";
     echo "  </item>\n";
 }
+$count = 0;
+echo "  <status>\n";
+foreach($success as $res) {
+    echo "    <node name=\"".$nodearray[$count]['name']."\" result=\"$res\" />\n";
+    $count++;
+} 
+echo "  </status>\n";
+
 echo "</items>\n";
 ?>

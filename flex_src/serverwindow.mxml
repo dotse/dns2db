@@ -35,6 +35,25 @@
     showBusyCursor="true"
 	result="resultHandler(event)"/>
 
+
+    <mx:Style>
+
+        .greenStyle {
+            color: green;
+            textRollOverColor: green;
+            textSelectedColor: green;
+            themeColor: green;
+        }
+
+        .redStyle {
+            color: red;
+            textRollOverColor: red;
+            textSelectedColor: red;
+            themeColor: red;
+        }
+    </mx:Style>
+
+
 	<mx:Script><![CDATA[
 		import mx.collections.ArrayCollection;
 		import mx.utils.ArrayUtil;
@@ -57,6 +76,8 @@
         public var touch_count:int = -1;
 		private var expcontant:Number = 0.00000007;
 		private var intervalText:String;
+		private var serverName2Num:Object = {};
+		private var serverCB:Array = new Array();
 
 		[Bindable]
 		private var serverData:ArrayCollection;
@@ -86,9 +107,10 @@
                         checkBox.id = "" + it;
                         checkBox.addEventListener(MouseEvent.CLICK, clickBox);
 
-                        //.click="data.onfield=!data.onfield; parentApplication.serverwin.clickBox(0);";
+                        serverName2Num[serverData[it].name] = it;
                         checkBox.selected=serverData[it].onfield;
                         addChild(checkBox);
+                        serverCB[it] = checkBox;
                     }
                 
                 } else {
@@ -98,9 +120,25 @@
                     {
                         parentApplication.rrstats = serverlistRequest.lastResult.items.rrtype;
                        
-                    } else {
-                        title="no array";
-                        serverData = new ArrayCollection([{position: serverlistRequest.lastResult.items.server.attribute("name"), qcount: '123'}]);
+                    } 
+					else 
+					{
+                        serverData = new ArrayCollection([{name: serverlistRequest.lastResult.items.server.name,
+													displayname: serverlistRequest.lastResult.items.server.displayname,
+														dnsname: serverlistRequest.lastResult.items.server.dnsname }]);
+	                    serverData[0].onfield = true;
+	                    var checkBox2:CheckBox = new CheckBox();
+	                    checkBox2.label = serverData[0].displayname;
+	                    checkBox2.move(10, 20);
+	                    checkBox2.width = 200;
+	                    checkBox2.height = 20;
+	                    checkBox2.id = "0";
+	                    checkBox2.addEventListener(MouseEvent.CLICK, clickBox);
+                        serverName2Num[serverData[0].name] = 0;
+
+	                    checkBox2.selected=serverData[0].onfield;
+	                    addChild(checkBox2);
+                        serverCB[0] = checkBox2;
                     }
                 }
 
@@ -185,6 +223,16 @@
             parentApplication.serversTouch++;
         }
 
+        public function setStatus(str:String , val:int) : void
+        {
+            var idx:int = serverName2Num[str];
+            var c:* = serverCB[idx];
+
+            if ( val == 0 )
+                c.styleName = "redStyle";
+            else
+                c.styleName = "greenStyle";
+        }
         private function cloneWin(event:MouseEvent):void {
             parentApplication.openWindow(functionString, null, server, "");
         }
