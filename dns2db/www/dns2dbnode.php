@@ -65,6 +65,13 @@ $qtype['255']='*';
 $qtype['32768']='TA';
 $qtype['32769']='DLV';
 
+$typeq = array();
+foreach ($qtype as $num=>$txt)
+{
+    $typeq[$txt]=$num;
+}
+
+
 $qclass = array();
 $qclass['1']='IN';
 $qclass['3']='Chaos';
@@ -83,7 +90,57 @@ if (isset($_GET['time']))
 	$time = $_GET['time'];
 if (isset($_GET['count']))
 	$count = $_GET['count'];
-$limit = " limit ".$count;
+$limit = " limit ".$count." ";
+
+$filter      = '';
+$filterwhere = '';
+$filterarr   = array();
+if (isset($_GET['filters']))
+{
+    $filterent = split(',',$_GET['filters']);
+    foreach ($filterent as $i)
+    {
+        $val = split(':',$i);
+        if (!$val[1])
+            $val[1]=1;
+        $filterarr[$val[0]]=$val[1];
+        
+    }
+
+    $op='';
+
+    if ($filterarr['4'] == '1' && $filterarr['6'] != '1')
+        $filter.=" ( ether_type=2048 ) ";
+    if ($filterarr['6'] == '1' && $filterarr['4'] != '1')
+        $filter.=" ( ether_type=34525 ) ";
+    if ($filterarr['4'] != '1' && $filterarr['6'] != '1')
+        $filter.=" ( ether_type!=34525 and ether_type!=2048 ) ";
+
+    if ($filter != "")
+        $op=" and ";
+
+    if ($filterarr['T'] == '1' && $filterarr['U'] != '1')
+        $filter.="$op ( protocol=6 ) ";
+    if ($filterarr['U'] == '1' && $filterarr['T'] != '1')
+        $filter.="$op ( protocol=17 ) ";
+    if ($filterarr['T'] != '1' && $filterarr['U'] != '1')
+        $filter.="$op ( protocol!=17 and protocol!=6 ) ";
+
+    if ($filter != "")
+        $op=" and ";
+
+    if ($filterarr['QT'] != 'ALL')
+        $filter.="$op ( rr_type=".$typeq[$filterarr['QT']]." ) ";
+
+        
+    if ($filter != "")
+    {
+        $filter=" ( ".$filter." ) ";
+	    $filterwhere= " where ".$filter." ";
+	    $filterand= " and ".$filter." ";
+	}
+	//error_log($filter);
+}
 
 $database = "";
 
@@ -107,8 +164,8 @@ else
     }
 }
 
-
 header("content-type: text/xml");
+
 
 // Change the DNS2DB path below to the path of your db-files.
 $dsn = "sqlite:".$database;
@@ -146,34 +203,34 @@ if (!isset($_GET['function'])) {
 
 }else if ($_GET['function'] == 'topdomains') {
 
-	$stmt = $dbh->prepare("select count (*)/5 qcount, trim (rr_lvl2dom || rr_lvl1dom, '.') from q group by rr_lvl2dom, rr_lvl1dom order by qcount desc".$limit);
+	$stmt = $dbh->prepare("select count (*)/5 qcount, trim (rr_lvl2dom || rr_lvl1dom, '.') from q $filterwhere  group by rr_lvl2dom, rr_lvl1dom order by qcount desc".$limit);
 	$stmt->execute();
 
 }else if ($_GET['function'] == 'topresolvers') {
 
- 	$stmt = $dbh->prepare("select count (*)/5 as qcount, src_addr from q group by src_addr order by qcount desc".$limit);
-        $stmt->execute();
+ 	$stmt = $dbh->prepare("select count (*)/5 as qcount, src_addr from q $filterwhere group by src_addr order by qcount desc".$limit);
+    $stmt->execute();
 
 }else if ($_GET['function'] == 'toprrtypes') {
 
- 	$stmt = $dbh->prepare("select count(*) as qcount ,rr_type from q group by rr_type order by qcount desc;");
-        $stmt->execute();
+ 	$stmt = $dbh->prepare("select count(*) as qcount ,rr_type from q $filterwhere group by rr_type order by qcount desc;");
+    $stmt->execute();
 
 }else if ($_GET['function'] == 'resolversfordomain') {
 
 	$lvl1dom = preg_match("/^(.*[.])([^.]*)$/", $_GET['domain'] , $matches);
-	$sql = "select count(id)/5 as qcount, src_addr as domain from q where rr_lvl2dom = '".$matches[1]."' and rr_lvl1dom = '".$matches[2].".' group by domain order by qcount desc".$limit;
+	$sql = "select count(id)/5 as qcount, src_addr as domain from q where rr_lvl2dom = '".$matches[1]."' and rr_lvl1dom = '".$matches[2].".' $filterand group by domain order by qcount desc".$limit;
 	$stmt = $dbh->prepare($sql);
-        $stmt->execute();
+    $stmt->execute();
 
 }else if ($_GET['function'] == 'domainforresolver') {
 
 	$stmt = $dbh->prepare("select count (*)/5 as qcount,
-	   trim (rr_lvl2dom || rr_lvl1dom, '.') as domain,
-	   trim(rr_cname, '.') as domain,
-	   rr_type as qtype,
-	   rr_class as qclass
-	from q where src_addr =  \"".$_GET['resolver']."\"
+    trim (rr_lvl2dom || rr_lvl1dom, '.') as domain,
+    trim(rr_cname, '.') as domain,
+    rr_type as qtype,
+    rr_class as qclass
+	from q where src_addr =  \"".$_GET['resolver']."\" $filterand
 	group by domain, rr_type
 	order by qcount desc".$limit);
     $stmt->execute();
@@ -196,9 +253,9 @@ while ($row = $stmt->fetch()) {
 
     $dom="";
     if ($s == 1) {
-      $dom = $row[2]." (".$qclass[$row[4]]." ".$qtype[$row[3]].")";
+        $dom = $row[2]." (".$qclass[$row[4]]." ".$qtype[$row[3]].")";
     } else {
-      $dom = $row[1];
+        $dom = $row[1];
     }
 
     echo "  <item>\n";

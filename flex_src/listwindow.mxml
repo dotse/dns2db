@@ -15,7 +15,7 @@
 	keyDown="windowKeyPress(event)"
 	doubleClickEnabled="true"
 	x="300"
-	y="50"
+	y="100"
 	doubleClick="windowDoubleClick(event);">
 
 <mx:Resize heightFrom="366" heightTo="30" id="windowResizeEffect1" duration="500"/>
@@ -210,10 +210,10 @@
         var nodesw:int = 100;
         var winw:int = this.width+10;
 
-        if (functionString == "topdomains")     { x = nodesw; y = 10; showCloseButton=false; }
-        if (functionString == "topresolvers")   { x = nodesw+winw; y = 10; showCloseButton=false; }
+        if (functionString == "topdomains")     { x = nodesw; y = 70; showCloseButton=false; }
+        if (functionString == "topresolvers")   { x = nodesw+winw; y = 70; showCloseButton=false; }
         if (functionString == "toprrtypes")     { 
-            x = nodesw+winw*2; y = 10; showCloseButton=false; 
+            x = nodesw+winw*2; y = 70; showCloseButton=false; 
 //            windowResizeEffect1.heightFrom = 366; 
 //            windowResizeEffect1.play([this],false);
             title="Expand to see rr types";
@@ -313,6 +313,7 @@
             serverRequest.url += "&time=" + doubleDigits(int(hCombo.selectedItem)) + "" + doubleDigits(int(mCombo.selectedItem));
             serverRequest.url += "&count=" + listCount.text;
             serverRequest.url += parentApplication.servers;
+            serverRequest.url += parentApplication.filterstring;
 
             if (functionString=="resolversfordomain")
                 serverRequest.url += "&domain=" + escape(StringUtil.trim(parameter));

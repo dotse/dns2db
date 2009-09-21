@@ -15,7 +15,7 @@
 	keyDown="windowKeyPress(event)"
 	doubleClickEnabled="true"
 	x="300"
-	y="50"
+	y="100"
 	doubleClick="windowDoubleClick(event);"
     backgroundColor="#D3D7D9">
 
@@ -39,6 +39,7 @@
     <mx:Style>
 
         .greenStyle {
+            fontWeight: bold;
             color: green;
             textRollOverColor: green;
             textSelectedColor: green;
@@ -46,6 +47,7 @@
         }
 
         .redStyle {
+            fontWeight: bold;
             color: red;
             textRollOverColor: red;
             textSelectedColor: red;
@@ -168,7 +170,7 @@
             serverlistRequest.url +=  "&" + Math.random();
             serverlistRequest.send();
 
-            x = 10; y = 10; showCloseButton=false; 
+            x = 10; y = 70; showCloseButton=false; 
 
             fade.play([this]);
         }

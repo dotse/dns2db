@@ -2,7 +2,7 @@
 <!-- $Id$  -->
 <mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" 
 	layout="absolute"
-    creationComplete="scriptUrl = Application.application.parameters.url; var iv:Interval=new Interval(null,0,0); openWindow('topdomains',iv,'',''); openWindow('topresolvers',iv,'',''); openWindow('toprrtypes',iv,'',''); openServerWindow();"
+    creationComplete="scriptUrl = Application.application.parameters.url; var iv:Interval=new Interval(null,0,0); openWindow('topdomains',iv,'',''); openWindow('topresolvers',iv,'',''); openWindow('toprrtypes',iv,'',''); openServerWindow(); openFilterWindow();"
    	backgroundSize="100%"  horizontalScrollPolicy="off" verticalScrollPolicy="off"
    	backgroundGradientColors="[#9bafb9, #68808c]"
   	pageTitle="TrafficAnalysis">
@@ -24,7 +24,9 @@
    			public var menu:ContextMenu;
    			public var scriptUrl:String;
             public var serverwin:*;
+            public var filterwin:*;
             public var servers:String = "";
+            public var filterstring:String = "";
             public var serversTouch:int = 0;
             public var rrstats:ArrayCollection;
 
@@ -48,9 +50,14 @@
             {
                 serverwin = PopUpManager.createPopUp(this , serverwindow, false);
             }
+
+            public function openFilterWindow():void 
+            {
+                filterwin = PopUpManager.createPopUp(this , filterwindow, false);
+            }
 		]]>
 	</mx:Script>
-	<mx:TextArea    selectable="false" editable="false" x="10" y="386" 
+	<mx:TextArea    selectable="false" editable="false" x="10" y="446" 
 	                width="900" height="186" 
 	                text="DNS2DB Traffic analysis GUI prototype. (c) Rickard Dahlstrand, IIS 2009.&#xa;&#xa;Instructions:&#xa;- The first windows displays the top 20 domains and servers. The serverlist takes a bit longer to load because it resolves each ip in the list.&#xa;- Double-click on a domain to open a window with all servers that are asking for that domain. Double-click on a server to open a window with a list of a queries for that server.&#xa;- If you click on a query you will get the servers asking for that domain. A single-click on a row copies the content to the clipboard.&#xa;- When a row is selected in a window you can use the left and right arrows to change the time five minutes. Holding down SHIFT moves hours, holding down CTRL moves days.&#xa;- You can search for a domain/server by typing in a text in the textbox. You can also change the number of lines that are displayed by selecting another value in the dropdown-box.&#xa;- You can close a windows by clicking on the cross in the top right corner. Double-click on the title bar to hide it temporarily or drag them to move them around." 
 	                fontFamily="Verdana" fontSize="9" borderStyle="none" 

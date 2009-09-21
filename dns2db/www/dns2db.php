@@ -8,6 +8,7 @@ if (!file_exists("dns2db_conf.php"))
 
 include ('dns2db_conf.php');
 
+  
 header("content-type: text/xml");
 //header("content-type: text/plain");
 
@@ -27,6 +28,7 @@ else
 {
     $nodestr=$_GET['nodes'];
 }
+
 
 # decode nodestring into $nodearray
 
@@ -107,6 +109,10 @@ $qtype['254']='MAILA';
 $qtype['255']='*';
 $qtype['32768']='TA';
 $qtype['32769']='DLV';
+
+  
+
+
 
 $qclass = array();
 $qclass['1']='IN';
@@ -226,6 +232,23 @@ if (!isset($_GET['function'])) {
     echo "</items>\n";
     exit(0);
 
+}else if ($_GET['function'] == 'filterlist') {
+?>
+<items>
+  <filter name="tcp" code="T" default="1"/>
+  <filter name="udp" code="U" default="1"/>
+  <filter name="v4" code="4" default="1"/>
+  <filter name="v6" code="6" default="1"/>
+  <filter name="qtype" code="QT" default="ALL" opts="ALL,<?php
+  foreach($qtype as $type)
+  {
+     echo "$type,";
+  }
+  ?>"/>
+</items>
+<?php
+    exit(0);
+
 }else if ($_GET['function'] == 'rrstats') {
     echo "<items>\n";
     foreach($rrstats as $i)
@@ -271,7 +294,7 @@ if ($db = new PDO('sqlite::memory:'))
 ############### create param string
 $sep ='?';
 $params ="";
-$valid=array('function','day','time','count','resolver','domain');
+$valid=array('function','day','time','count','resolver','domain','filters');
 foreach($valid as $i) {
     if (isset($_GET[$i]))
     {
