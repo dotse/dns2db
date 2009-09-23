@@ -18,6 +18,7 @@ esac
 
 # Checks for programs.
 AC_PROG_CC_C99
+AC_PROG_CXX
 
 # Checks for libraries.
 AC_CHECK_LIB([trace], [trace_help])

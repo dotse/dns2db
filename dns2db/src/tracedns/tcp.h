@@ -34,77 +34,29 @@
 #include <netinet/in.h>
 #include "libtrace.h"
 #include "global.h"
-#include "list.h"
-#include "tcp_seg.h"
 
 typedef struct in6_addr in6addr_t;
 
-typedef struct tcp_stream_t {
-   in6addr_t *src_ip;
-   in6addr_t *dst_ip;
-   uint16_t src_port;
-   uint16_t dst_port;
-   list_t seg_list;
-} tcp_stream_t;
 
 
-/** Lookup a stream in the list of streams.
- */
-tcp_stream_t *
-tcp_lookup (
-   in6addr_t *src_ip, //!< In: IPv6 address in presentation format.
-   in6addr_t *dst_ip, //!< In: IPv6 address in presentation format.
-   uint16_t src_port, //!< Port number.
-   uint16_t dst_port //!< Port number. 
-);
-
-
-/** Add a segment to a stream.
- */
-void
-tcp_add_segment (
-   tcp_stream_t *st, //!< In: Stream.
-   libtrace_tcp_t *tcp, //!< In: TCP segment.
-   uint32_t *rest //!< In: number of bytes in TCP segment (= rest after IP header).
-);
-
-
-/** Add a new stream to the list of streams.
- */
-tcp_stream_t *
-tcp_add_stream (
-   in6addr_t *src_ip, //!< In: IPv6 address in presentation format.
-   in6addr_t *dst_ip, //!< In: IPv6 address in presentation format.
-   uint16_t src_port, //!< Port number.
-   uint16_t dst_port //!< Port number.
-);
-
-
-/** Get the total payload from the stream.
+/** Assembles tcp packets into streams and returns data 
+    when 'fin' has been recieved
  */
 uint8_t *
-tcp_get_stream_data (
-   tcp_stream_t *st, //!< Stream.
-   uint32_t *rest //!< Out: number of bytes of data.
+assemble_tcp (
+  in6addr_t *src_ip, 
+  in6addr_t *dst_ip, 
+   uint16_t src_port,
+   uint16_t dst_port,
+   uint32_t *rest,
+   uint32_t seq,
+   uint8_t *data, 
+   size_t len,
+   char syn,
+   char fin,
+   char rst,
+   char ack
 );
 
-
-/** Free all allocated memory for the stream and destroy the stream.
- */
-void
-tcp_delete_stream (
-   tcp_stream_t *st //!< In: stream.
-);
-
-
-/** Add segment to a stream.
- */
-list_t
-tcp_add_to_stream (
-   in6addr_t *src_ip, //!< In: IPv6 address in presentation format.
-   in6addr_t *dst_ip, //!< In: IPv6 address in presentation format.
-   libtrace_tcp_t *tcp, //!< In: TCP segment.
-   uint32_t *rest //!< In: number of bytes in TCP segment (= rest after IP header).
-);
 #endif
 

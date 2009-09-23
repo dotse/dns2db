@@ -1,0 +1,259 @@
+/*! \file */ 
+/*
+ * Copyright (c) 2007 .SE (The Internet Infrastructure Foundation).
+ *                  All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * ##################################################################### 
+ *
+ */
+ 
+extern "C" {
+   #include "tcp.h"
+}
+
+#include <map>
+#include <list>
+
+/** tcp stream_id class - serves as key in the streams map
+ */
+class Stream_id
+{
+   public:
+      Stream_id()
+      {
+      }
+      Stream_id(  in6addr_t &src_ip, 
+                  in6addr_t &dst_ip, 
+                  uint16_t src_port,
+                  uint16_t dst_port)
+      {
+         m_src_ip    = src_ip;
+         m_dst_ip    = dst_ip;
+         m_src_port  = src_port;
+         m_dst_port  = dst_port;
+      }
+   
+      bool operator < (const Stream_id &rhs) const 
+      {
+         return memcmp(this,&rhs,sizeof(Stream_id)) < 0; 
+      } 
+   private:
+      in6addr_t m_src_ip,  m_dst_ip;
+      uint16_t  m_src_port,m_dst_port;
+};
+
+/** tcp data segment
+*/
+class Data_segment
+{
+   public:
+      Data_segment( uint8_t *data, size_t len)
+      {
+         m_datasize = len;
+         m_data = new uint8_t[len];
+         for (int i=0; i<len; i++)
+         {
+            m_data[i]=data[i];
+         }
+      }
+      Data_segment(const Data_segment &other)
+      {
+         m_datasize = other.m_datasize;
+         m_data = new uint8_t[m_datasize];
+         for (int i=0; i<m_datasize; i++)
+         {
+            m_data[i]=other.m_data[i];
+         }      
+      }
+      ~Data_segment()
+      {
+         delete []m_data;
+      }
+      size_t    m_datasize;
+      uint8_t  *m_data;
+};
+
+int g_count = 0;
+
+/** tcp stream (contains segments)
+*/
+class Stream
+{
+   public:
+      Stream()
+      {
+         m_ser       = g_count++;
+         m_content   = false;
+         m_nseq      = false;
+      }
+      
+      void add( uint32_t seq, Data_segment &s)
+      {
+         m_content=true;
+
+         if (m_seq==seq)
+         {
+          m_content = true;
+            if ( (s.m_datasize > 0 && s.m_datasize <= 65535) )
+            {
+               m_segments.push_back(s);
+               m_seq=seq+s.m_datasize;
+            }
+         }
+         if (!m_segments.size())
+            m_seq=seq;
+      }
+      bool has_content()
+      {
+         return m_content;
+      }
+      void erase()
+      {
+         m_content = false;
+         m_nseq    = false;
+         m_segments.clear();
+         
+      }
+      int get_size()
+      {
+         int size = 0;
+         for (std::list<Data_segment>::iterator it = m_segments.begin();
+              it != m_segments.end(); it ++)
+         {
+            size += it->m_datasize;
+         }
+         return size;
+      }
+      void dump()
+      {
+         int start=2;
+         for (std::list<Data_segment>::iterator it = m_segments.begin();
+              it != m_segments.end(); it ++)
+         {
+            for (int i=start; i< it->m_datasize; i++)
+            {
+               printf("%02x",it->m_data[i]);
+            }
+            start = 0;
+         }         
+         printf("\n");
+      }
+      uint8_t *get_buffer()
+      {
+         int start=2, p=0;
+         for (std::list<Data_segment>::iterator it = m_segments.begin();
+              it != m_segments.end(); it ++)
+         {
+            for (int i=0; i< it->m_datasize; i++)
+            {
+               m_buffer[p++]=it->m_data[i];
+               if (p>=0xffff)
+                  return m_buffer;
+            }
+            start = 0;
+         }         
+         return m_buffer;
+      }
+   private:
+      uint32_t                m_seq;
+      int                     m_ser;
+      bool                    m_content;
+      bool                    m_nseq;
+      std::list<Data_segment> m_segments;
+   
+      static uint8_t          m_buffer[0x10000];
+};
+uint8_t Stream::m_buffer[0x10000];
+
+std::map<Stream_id,Stream> g_tcp_streams;
+ 
+
+extern "C" {
+
+/** --- assemble_tcp --------------------------------------------------------
+*/
+uint8_t *
+assemble_tcp (
+   in6addr_t *src_ip, 
+   in6addr_t *dst_ip, 
+   uint16_t src_port,
+   uint16_t dst_port,
+   uint32_t *rest,
+   uint32_t seq,
+   uint8_t *data, 
+   size_t len,
+   char syn,
+   char fin,
+   char rst,
+   char ack
+) {
+   seq = ntohl (seq);
+
+   Stream_id id ( *src_ip, *dst_ip, src_port, dst_port );
+   Stream   &str = g_tcp_streams[id];
+   bool data_avail = false;
+   
+   if (!str.has_content())
+   {
+      if (syn == 1) 
+      {
+         Data_segment seg( data, len);
+         str.add( seq, seg);
+      }
+   }
+   else
+   {
+      if (rst == 1) 
+      {
+         str.erase();
+      }
+      else if (syn == 1) 
+      {
+         str.erase();
+         Data_segment seg( data, len);
+         str.add( seq, seg);
+      }
+      else if (fin == 0)
+      {
+         Data_segment seg( data, len);
+         str.add( seq, seg);
+      }
+   }
+ 
+   data = 0;
+   data_avail = (str.has_content() && (fin == 1) && (rst == 0));
+   if (data_avail)
+   {
+      *rest = str.get_size();
+      if (*rest > 0xffff)
+         *rest = 0xffff;
+      data = (uint8_t*)malloc(*rest);
+      memcpy(data,str.get_buffer(),*rest);
+      str.erase();
+      g_tcp_streams.erase(id);
+   }
+   return data;
+}
+
+
+}

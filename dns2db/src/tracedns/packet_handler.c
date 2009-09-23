@@ -28,6 +28,12 @@
  */
 #include "packet_handler.h"
 
+
+
+
+
+
+
 // === Local function prototypes ===============================================
 /** Get a segment, i.e. the payload, from a datagram.
  */
@@ -46,21 +52,7 @@ get_seg (
 uint8_t *
 get_udp (libtrace_udp_t *udp, uint32_t *rest);
 
-/** Build a representation of a TCP packet stream.
- */
-tcp_stream_t *
-build_tcp_stream (
-  in6addr_t *src_ip, 
-  in6addr_t *dst_ip, 
-  libtrace_tcp_t *tcp, 
-  tcp_stream_t *st, 
-  uint32_t *rest
-);
 
-/** Get a complete TCP payload from a TCP stream.
- */
-uint8_t *
-get_tcp (libtrace_tcp_t *tcp, tcp_stream_t *st, uint32_t *rest);
 
 /** Get the payload from a segment, i.e. the TCP or UDP packet.
  */
@@ -172,47 +164,6 @@ get_udp (libtrace_udp_t *udp, uint32_t *rest) {
    return p;
 }
 
-// --- build_tcp_stream --------------------------------------------------------
-tcp_stream_t *
-build_tcp_stream (
-   in6addr_t *src_ip, 
-   in6addr_t *dst_ip, 
-   libtrace_tcp_t *tcp, 
-   tcp_stream_t *st, 
-   uint32_t *rest
-) {
-   if (st == NULL) { // new stream
-      if (tcp->syn == 1) {
-         st = tcp_add_stream (src_ip, dst_ip, tcp->source, tcp->dest);
-         tcp_add_segment (st, tcp, rest);
-      }
-      else {
-         XFREE(st);
-      }
-   }
-   else { // existing stream
-      if (tcp->rst == 1) {
-         tcp_delete_stream (st);
-      }
-      else if (tcp->syn == 1) {
-         tcp_delete_stream (st);
-         st = tcp_add_stream (src_ip, dst_ip, tcp->source, tcp->dest);
-         tcp_add_segment (st, tcp, rest);
-      }
-      else {
-         tcp_add_segment (st, tcp, rest);
-      }
-   }
-   return st;
-}
-
-// --- get_tcp -----------------------------------------------------------------
-uint8_t *
-get_tcp (libtrace_tcp_t *tcp, tcp_stream_t *st, uint32_t *rest) {
-   return ((tcp->fin == 1) && (tcp->rst == 0)) 
-          ? tcp_get_stream_data (st, rest) 
-          : NULL;
-}
 
 // --- get_seg_payload ---------------------------------------------------------
 uint8_t *
@@ -227,8 +178,9 @@ get_seg_payload (
    uint8_t *p = NULL;
    libtrace_udp_t *udp = NULL;
    libtrace_tcp_t *tcp = NULL;
-   tcp_stream_t *st = NULL;
-   
+   uint16_t dst_port;
+   uint8_t *data = NULL;
+
    p = NULL;
    switch (proto) {
       case IPPROTO_UDP:
@@ -237,15 +189,17 @@ get_seg_payload (
          p = get_udp (udp, rest);
       break;
       case IPPROTO_TCP:
-         tcp = (libtrace_tcp_t *) seg;
+
+         tcp       = (libtrace_tcp_t *) seg;
          *src_port = tcp->source;
-         st = tcp_lookup (src_ip, dst_ip, tcp->source, tcp->dest);
-         st = build_tcp_stream (src_ip, dst_ip, tcp, st, rest);
+         dst_port  = tcp->dest;
+
+         // data is freed by libtrace
+         data      = (uint8_t *) trace_get_payload_from_tcp (tcp, rest); 
+
          // get the assembled TCP packet and remove the individual segments.
-         p = st != NULL ? get_tcp (tcp, st, rest): NULL;
-         if (p != NULL) {
-            tcp_delete_stream (st);
-         }
+         p = assemble_tcp (src_ip, dst_ip, *src_port, dst_port, rest, tcp->seq, 
+                           data, *rest, tcp->syn, tcp->fin, tcp->rst, tcp->ack);
          
          break;
       default:

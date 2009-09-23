@@ -30,6 +30,8 @@
 #define PACKET_HANDLER_H
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <strings.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -39,7 +41,7 @@
 #include <libtrace.h>
 #include "global.h"
 #include "tcp.h"
-#include "tcp_seg.h"
+#include <assert.h>
 
 /** Print an IP packet in CSV ASCII on standard output. 
  */
