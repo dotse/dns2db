@@ -350,7 +350,7 @@ foreach($cha as $ch) {
 curl_multi_close($mh);
 
 # grab all results
-$count = 0;
+$counter = 0;
 foreach($res as $xmlstring) {
     try
     {
@@ -358,7 +358,7 @@ foreach($res as $xmlstring) {
 
     	foreach ($xml as $item)
     	{
-    	    $success[$count]="1";
+    	    $success[$counter]="1";
 	        $dom =   $item->domain;
 	        $count = $item->qcount;
 	        $disp =  $item->displaytext;
@@ -369,7 +369,7 @@ foreach($res as $xmlstring) {
     catch (Exception $e)
     {
     }
-    $count++;
+    $counter++;
 }
 
 
@@ -407,7 +407,7 @@ echo "  <status>\n";
 foreach($success as $res) {
     echo "    <node name=\"".$nodearray[$count]['name']."\" result=\"$res\" />\n";
     $count++;
-} 
+}
 echo "  </status>\n";
 
 echo "</items>\n";
