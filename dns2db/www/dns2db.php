@@ -316,6 +316,9 @@ foreach($nodearray as $i) {
     $success[$count] = "0";
     $cha[$count++] = $ch;
     curl_setopt($ch,CURLOPT_URL,$i['url'].$params);
+    curl_setopt($ch,CURLOPT_USERPWD,$i['cred']);
+    curl_setopt($ch,CURLOPT_HTTPAUTH,CURLAUTH_ANY);
+    curl_setopt($ch,CURLOPT_SSL_VERIFYPEER,false);
     curl_setopt($ch,CURLOPT_RETURNTRANSFER,TRUE);
     curl_setopt($ch,CURLOPT_HEADER,0);
 }
