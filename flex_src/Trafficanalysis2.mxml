@@ -2,7 +2,7 @@
 <!-- $Id$  -->
 <mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" 
 	layout="absolute"
-    creationComplete="scriptUrl = Application.application.parameters.url; var iv:Interval=new Interval(null,0,0); openWindow('topdomains',iv,'',''); openWindow('topresolvers',iv,'',''); openWindow('toprrtypes',iv,'',''); openServerWindow(); openFilterWindow();"
+    creationComplete="scriptUrl = Application.application.parameters.url; onCreationComplete(); "
    	backgroundSize="100%"  horizontalScrollPolicy="off" verticalScrollPolicy="off"
    	backgroundGradientColors="[#9bafb9, #68808c]"
   	pageTitle="TrafficAnalysis">
@@ -30,6 +30,16 @@
             public var serversTouch:int = 0;
             public var rrstats:ArrayCollection;
 
+            public function onCreationComplete():void
+            {
+                var iv:Interval=new Interval(null,0,0); 
+                openWindow('topdomains',iv,'','');
+                openWindow('topresolvers',iv,'',''); 
+                openWindow('toprrtypes',iv,'',''); 
+                openWindow('topresolveranddomain',iv,'',''); 
+                openServerWindow(); 
+                openFilterWindow();
+            }
             public function start():void {
 				var menu:ContextMenu = new ContextMenu();
 				menu.hideBuiltInItems();

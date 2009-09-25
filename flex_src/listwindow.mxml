@@ -120,6 +120,10 @@
            } else if (functionString == "topresolvers") {
                 title = "Top servers for " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
                 colTitle = "Server";
+           } else if (functionString == "topresolveranddomain") {
+                title = "Top repeating resolvers for " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
+                colTitle = "Resolver (query & type)";
+                countTitle = "Count";
            } else if (functionString == "toprrtypes") {
                 title = "Top rr types for " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
                 colTitle = "RR Type";
@@ -143,19 +147,20 @@
 			for( i = 0; i < myData.length; ++i ) {
 				if (myData[i].domain == sel) { serverGrid.selectedIndex = i; }
 			}
-            if ((functionString == "topresolvers") ||(functionString == "resolversfordomain"))
-            {
-			    for( i = 0; i < myData.length; ++i ) {
-                    if ( myData[i].displaytext.length()< 2)
-                        myData[i].displaytext=myData[i].domain; 
-                }
-            }
-            myData.refresh();
-            serverGrid.verticalScrollPosition = vert;
 
-            // investigate why this fails for topresolvers
-            myData.filterFunction = filterListItem;
-            myData.refresh();
+         if ((functionString == "topresolvers") ||(functionString == "resolversfordomain"))
+         {
+          for( i = 0; i < myData.length; ++i ) {
+                 if ( myData[i].displaytext.length()< 2)
+                     myData[i].displaytext=myData[i].domain; 
+             }
+         }
+         myData.refresh();
+         serverGrid.verticalScrollPosition = vert;
+
+         // investigate why this fails for topresolvers
+         myData.filterFunction = filterListItem;
+         myData.refresh();
 
         } else {
             myData = null;
@@ -188,10 +193,12 @@
             //title =  name + " = " + ip;
 
             for( var i:int = 0; i < myData.length; ++i ) {
-                if (myData[i].domain == ip) 
+                var str:String = myData[i].domain.split(' ')[0];
+                if (str == ip) 
                 {
+                   
                     //title= myData[i].domain;
-                    myData[i].displaytext = name+" "; 
+                    myData[i].displaytext = name+" "+myData[i].domain.substr(str.length+1)+" "; 
                 }
             }
             myData.refresh();
@@ -214,10 +221,7 @@
         if (functionString == "topresolvers")   { x = nodesw+winw; y = 70; showCloseButton=false; }
         if (functionString == "toprrtypes")     { 
             x = nodesw+winw*2; y = 70; showCloseButton=false; 
-//            windowResizeEffect1.heightFrom = 366; 
-//            windowResizeEffect1.play([this],false);
             title="Expand to see rr types";
-//            this.width=240;
             this.height=30;
             filterText.visible=false;
             listCount.visible=false;  
@@ -236,6 +240,30 @@
             cols[3]=cols[2];
             cols[2]=dgc;
             serverGrid.columns = cols;
+
+        }
+        if (functionString == "topresolveranddomain")     { 
+            x = nodesw+winw*2; y = 10; showCloseButton=false; 
+            title="Expand to see top repeating resolvers";
+            this.height=30;
+            filterText.visible=false;
+//            listCount.visible=false;  
+
+            cols = serverGrid.columns;
+            
+            cols[1].width=42;
+
+            // add a percentage column            
+//            dgc:DataGridColumn = new DataGridColumn("%");
+//            dgc.width = 35;
+//            dgc.dataField = "percentage";
+//            dgc.dataTipField = "total";
+//            dgc.showDataTips = true;
+//            dgc.setStyle("textAlign","right");
+//            dgc.itemRenderer=new ClassFactory(BackgroundColorRenderer);
+//            cols[3]=cols[2];
+//            cols[2]=dgc;
+//            serverGrid.columns = cols;
 
         }
 
@@ -286,7 +314,7 @@
 
         if ((touch_count != interval.touch_count) || (servers_touch_count != parentApplication.serversTouch))
         {
-            if ( previousRequests.length > 3 )
+            if ( previousRequests.length > 1 )
                 return;
 
             
@@ -326,13 +354,14 @@
             title = "loading, please wait....";
         }
 
-        if ((functionString == "topresolvers")||(functionString == "resolversfordomain"))
+        if ((functionString == "topresolvers")||(functionString == "resolversfordomain")||(functionString == "topresolveranddomain"))
         {
             var cnt:int = 0;
             for( var i:int = 0; i < myData.length; ++i ) {
                 if (myData[i].domain == myData[i].displaytext) 
                 {
-                    var lookup:String = myData[i].domain;
+                    var lookup:String = myData[i].domain.split('(')[0];
+                    //title = lookup;
                     myData[i].displaytext = myData[i].displaytext+" "; 
                     lookupRequest.url=parentApplication.scriptUrl + "?function=lookup&lookup=" + lookup;
                     lookupRequest.send();
@@ -456,6 +485,9 @@
             } 
             if (functionString == "domainforresolver") {
                 func = "resolversfordomain";
+            } 
+            if (functionString == "topresolveranddomain") {
+                func = "topresolveranddomain";
             } 
 
 			var dd:String = "";
