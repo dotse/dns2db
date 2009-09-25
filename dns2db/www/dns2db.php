@@ -263,6 +263,8 @@ if (!isset($_GET['function'])) {
 	$s=3;
 }else if ($_GET['function'] == 'topdomains') {
 
+}else if ($_GET['function'] == 'topresolveranddomain') {
+
 }else if ($_GET['function'] == 'topresolvers') {
         $s = 2;
 

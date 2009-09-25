@@ -139,7 +139,6 @@ if (isset($_GET['filters']))
 	    $filterwhere= " where ".$filter." ";
 	    $filterand= " and ".$filter." ";
 	}
-	//error_log($filter);
 }
 
 $database = "";
@@ -223,6 +222,20 @@ if (!isset($_GET['function'])) {
 	$stmt = $dbh->prepare($sql);
     $stmt->execute();
 
+}else if ($_GET['function'] == 'topresolveranddomain') {
+
+#	$lvl1dom = preg_match("/^(.*[.])([^.]*)$/", $_GET['domain'] , $matches);
+#	$sql = "select count(*)/5 as qcount, (src_addr || rr_cname) as domain, src_addr as domain from q $filterwhere group by domain order by qcount desc".$limit;
+	$sql = "create index if not exists resanddomandtype on q (rr_cname,src_addr,rr_type);";
+	$stmt = $dbh->prepare($sql);
+    $stmt->execute();
+	$sql = "select qcount,src_addr as domain, rr_cname, rr_type from ( select count(*) as qcount,rr_cname,src_addr,rr_type from q group by rr_cname,src_addr,rr_type) where qcount>1 order by qcount desc $limit";
+	$stmt = $dbh->prepare($sql);
+    $stmt->execute();
+    $s=2;
+
+
+
 }else if ($_GET['function'] == 'domainforresolver') {
 
 	$stmt = $dbh->prepare("select count (*)/5 as qcount,
@@ -254,6 +267,9 @@ while ($row = $stmt->fetch()) {
     $dom="";
     if ($s == 1) {
         $dom = $row[2]." (".$qclass[$row[4]]." ".$qtype[$row[3]].")";
+    } else if ($s == 2) {
+        $dom = $row[1]." (".$row[2]." ".$qtype[$row[3]].")";
+        $row[1]=$dom;
     } else {
         $dom = $row[1];
     }
