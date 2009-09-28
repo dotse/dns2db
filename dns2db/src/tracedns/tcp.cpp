@@ -34,14 +34,15 @@ extern "C" {
 #include <map>
 #include <list>
 
-/** tcp stream_id class - serves as key in the streams map
- */
+/// TCP Stream id class - serves as the key in the streams map
 class Stream_id
 {
    public:
+      /// constructor
       Stream_id()
       {
       }
+      /// constructor taking source and destination adresses
       Stream_id(  in6addr_t &src_ip, 
                   in6addr_t &dst_ip, 
                   uint16_t src_port,
@@ -53,6 +54,7 @@ class Stream_id
          m_dst_port  = dst_port;
       }
    
+      /// < comparison operator for the std::map 
       bool operator < (const Stream_id &rhs) const 
       {
          return memcmp(this,&rhs,sizeof(Stream_id)) < 0; 
@@ -62,11 +64,14 @@ class Stream_id
       uint16_t  m_src_port,m_dst_port;
 };
 
-/** tcp data segment
-*/
+/// TCP data segment container 
+/** Data_segment contains the data found in a single tcp packet
+ * Data_segment are inerted into a list in the Stream class
+ */
 class Data_segment
 {
    public:
+      /// Constructor taking a memory block with packet content
       Data_segment( uint8_t *data, size_t len)
       {
          m_datasize = len;
@@ -76,6 +81,7 @@ class Data_segment
             m_data[i]=data[i];
          }
       }
+      /// Copy constructor
       Data_segment(const Data_segment &other)
       {
          m_datasize = other.m_datasize;
@@ -85,29 +91,41 @@ class Data_segment
             m_data[i]=other.m_data[i];
          }      
       }
+      /// Destructor
       ~Data_segment()
       {
          delete []m_data;
       }
+      
+      /// size of the data
       size_t    m_datasize;
+      /// pointer to the data
       uint8_t  *m_data;
 };
 
 int g_count = 0;
 
-/** tcp stream (contains segments)
-*/
+/// TCP Stream class
+/** The Stream class has an Stream_id and a list of Data_segemnts that make up 
+ *  a tcp data stream.
+ *  The Streams are organized into a global map ( g_tcp_streams ) indexed by a Stream_id
+ */
 class Stream
 {
    public:
+      /// Constructor
       Stream()
       {
          m_ser       = g_count++;
          m_content   = false;
          m_nseq      = false;
       }
-      
-      void add( uint32_t seq, Data_segment &s)
+      /// add a datasegment to the stream
+      /** If the segment has the expected sequence number 
+       *  the segment will be added to the list
+       */
+      void add(   uint32_t seq     /// Sequence number of the segment
+                  ,Data_segment &s  /** Data segment */ )
       {
          m_content=true;
 
@@ -123,10 +141,12 @@ class Stream
          if (!m_segments.size())
             m_seq=seq;
       }
+      /// checka if there's any content in the stream 
       bool has_content()
       {
          return m_content;
       }
+      /// Erase (and free) all segments and reset state
       void erase()
       {
          m_content = false;
@@ -134,6 +154,7 @@ class Stream
          m_segments.clear();
          
       }
+      /// return the streams data size 
       int get_size()
       {
          int size = 0;
@@ -144,6 +165,7 @@ class Stream
          }
          return size;
       }
+      /// debug functionality to dump a streams content
       void dump()
       {
          int start=2;
@@ -158,6 +180,10 @@ class Stream
          }         
          printf("\n");
       }
+      /// returns the data in the stream 
+      /** The returned data is located in a static buffer shared by all streams
+       *  the data is valid until the next call to get_buffer()
+       */
       uint8_t *get_buffer()
       {
          int start=2, p=0;
@@ -190,8 +216,11 @@ std::map<Stream_id,Stream> g_tcp_streams;
 
 extern "C" {
 
-/** --- assemble_tcp --------------------------------------------------------
-*/
+/// assemble_tcp builds datastreams out of tcp packets
+/** TCP packets are inserted into streams. When the streams are closed
+ *  the contained data is returned as a pointer the data 
+ *  it is up to the caller to free() the memory returned.
+ */
 uint8_t *
 assemble_tcp (
    in6addr_t *src_ip, 
