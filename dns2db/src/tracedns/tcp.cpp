@@ -33,6 +33,8 @@ extern "C" {
 
 #include <map>
 #include <list>
+#include <cstring>
+#include "stdlib.h"
 
 /// TCP Stream id class - serves as the key in the streams map
 class Stream_id
