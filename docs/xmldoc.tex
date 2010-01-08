@@ -1,0 +1,842 @@
+
+\documentclass[a4paper]{article}
+
+\usepackage{alltt}
+
+\setlength\textwidth{6.0in}
+\setlength\oddsidemargin{0.5in}
+\setlength\evensidemargin{0.5in}
+%\setlength\parindent{0.25in}
+%\setlength\parskip{0.25in} 
+
+\newcommand{\urlb}{\footnotesize\begin{alltt}} 
+\newcommand{\urle}{\end{alltt}\normalsize} 
+\newcommand{\exampleb}{\small\begin{alltt}} 
+\newcommand{\examplee}{\end{alltt}\normalsize} 
+\renewcommand{\familydefault}{\sfdefault}
+\newcommand{\xmlv}[1]{\textbf{\textless#1\textgreater}} 
+\newcommand{\xml}[1]{\textless#1\textgreater} 
+\newcommand{\dnsdb}{DNS\textsuperscript{2db}} 
+
+
+
+\title{\dnsdb \linebreak\linebreak HTTP interface specification\linebreak \textbf{Draft} }
+
+\author{\linebreak.SE (The Internet Infrastructure Foundation)}
+\date{December 2009}
+\begin{document}
+\maketitle
+\newpage
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+This document describes the http get request and the resulting output of 
+the two \dnsdb \hspace{3pt}php scripts. For a description of the complete \dnsdb \hspace{3pt}system refer to the \dnsdb 
+whitepaper which can be found at opensource.iis.se.
+
+The dns2db.php script is a proxy that connects to one or several collector 
+nodes in the \dnsdb  system and aggregates their output. 
+The dns2dbnode.php is the script that runs on the collector nodes and retrieves data 
+from the \dnsdb databases has almost the same interface as dns2db.php. 
+The main purpose of the dns2db.php script is to feed the flex gui with data.
+
+
+\section{Overview}
+
+This section contains a brief overview of the get parameters and the 
+xml output tags.
+
+\subsection{Query parameters}
+\begin{center}
+    \begin{tabular}{ | l | p{10cm} |}
+    \hline
+    \textbf{Parameter} & \textbf{Format}  \\ \hline
+    
+    function & 
+    Specifies the main function of the script se a discussion of each function in the functions section. 
+    \\ \hline
+
+    nodes &  Comma separated list of servers to be applied to the query.
+    
+    Format: \verb|&nodes=node1,node2,node3,node4|
+    where \verb|node1| should be the nodename as output by the nodelist function. 
+    \\ \hline
+
+    day & Specifies the date
+
+    Format: \verb|&day=YYYYMMDD|
+    \\ \hline
+
+    time & Specifies the start time of the interval
+
+    Format: \verb|&time=HHMM| 
+    \\ \hline
+
+    count & Specifies the maximum number of returned entries. This does not affect the serverlist function.
+
+    Format: \verb|&count=n|
+    \\ \hline
+
+    resolver & 
+    Specifies the resolver for the domainforresolver function.
+    \linebreak Format for ipv6: \verb|&resolver=nnnn:nnnn::nnnn| 
+    
+    
+    Format for ipv4: \verb|&resolver=::nnn.nnn.nnn.nnn|
+    \\ \hline
+
+    domain & 
+    Specifies the domain for the resolverfordomain function
+
+    Format: \verb|&domain=foo.se|
+    \\ \hline
+    \end{tabular}
+\end{center}
+
+
+\newpage
+
+\subsection{The XML output}
+
+
+The response of all querys is in xml format and contain only the data requested. The following tags are in use.
+
+
+\begin{center}
+    \begin{tabular}{ | l | p{10cm} |}
+        \hline
+        \textbf{Tag} & \textbf{Function}  \\ \hline
+        \verb|<items>|&
+        list container  \\ \hline
+        \verb|<item>|&
+        container for each list item \\ \hline
+        \verb|<position>|&
+        index of the list item \\ \hline
+        \verb|<qcount>|&
+        number of queries per minute\\ \hline
+        \verb|<domain>|&
+        domain name\\ \hline
+        \verb|<displaytext>|&
+        displaytext\\ \hline
+        \verb|<status>|&
+        contains status information for the nodes in the system \\ \hline
+        \verb|<node>|&
+        a status entry per node inside the status tag \\ \hline
+        \verb|<filter>|&
+        available filters, only used in the response to the filterlist function \\ \hline
+        \verb|<server>|&
+        node description, only used in the response to the nodelist function \\ \hline
+    \end{tabular}
+\end{center}
+
+
+\newpage
+\section{Functions}
+
+    \subsection{Function: nodelist}
+
+	The nodelist function returns an xml formatted list with available DNS2db collection nodes.\\
+	The nodelist function is not available from the dns2dbnode.php script.
+
+\begin{center}
+    \begin{tabular}{ | l | p{6cm} |}
+    \hline
+    \textbf{Parameter} & \textbf{Comment}  
+    \\ \hline
+    function
+    &
+    must be "nodelist"
+    \\ \hline
+    \end{tabular}
+\end{center}
+
+Example:
+
+\urlb
+http://servername/dns2db.php?function=nodelist
+\urle
+
+Example output:
+\exampleb
+<?xml version="1.0" encoding="ISO-8859-1">
+<items>
+ <server name="a" dnsname="a.ns.tld" displayname="A" description="Big server"/>
+ <server name="a" dnsname="b.ns.tld" displayname="B" description="Small server"/>
+</items>
+\examplee
+     
+     
+\newpage
+\subsection{Function: filterlist}
+
+	The filterlist function returns an xml formatted list with available filters.
+	A gui should ideally list the returned \xml{filter} tags as a set of check boxes and combobuttons. 		
+	Any filter item with an opts attribute should be considered a combobutton or some kind of multiselect.
+	The filters are not configurable but the number of filters and their names may change with future versions of \dnsdb.\\
+	The filterlist function is not available from the dns2dbnode.php script.
+
+\begin{center}
+    \begin{tabular}{ | l | p{6cm}|}
+    \hline
+    \textbf{Parameter} & \textbf{Comment}  
+    \\ \hline
+    function
+    &
+    must be "filterlist"
+    \\ \hline
+
+    \end{tabular}
+\end{center}
+
+Example:
+
+\urlb
+http://server/dns2db.php?function=filterlist
+\urle
+
+Example output:
+
+\exampleb
+<?xml version="1.0" encoding="ISO-8859-1"?> 
+<items> 
+  <filter name="tcp" code="T" default="1"/> 
+  <filter name="udp" code="U" default="1"/> 
+  <filter name="v4" code="4" default="1"/> 
+  <filter name="v6" code="6" default="1"/> 
+  <filter name="qtype" code="QT" default="ALL"
+      opts="ALL,A,NS,MD,MF,CNAME,SOA,MB,MG,MR,NULL,WKS,PTR,HINFO,MINFO,MX,TXT,
+          RP,AFSDB,X25,ISDN,RT,NSAP,NSAP-PTR,SIG,KEY,PX,GPOS,AAAA,LOC,NXT,EID,
+          NIMLOC,SRV,ATMA,NAPTR,KX,CERT,A6,DNAME,SINK,OPT,APL,DS,SSHFP,IPSECKEY,
+          RRSIG,NSEC,DNSKEY,DHCID,SPF,UINFO,UID,GID,UNSPEC,TKEY,TSIG,IXFR,AXFR,
+          MAILB,MAILA,*,TA,DLV,"/> 
+</items> 
+\examplee
+\newpage
+\subsection{Function: topresolvers}
+	The topresolvers function returns an xml formatted list of the top resolvers.
+
+\begin{center}
+    \begin{tabular}{ | l | p{6cm}|}
+    \hline
+    \textbf{Parameter} & \textbf{Comment}  
+    \\ \hline
+    function
+    &
+    must be "topresolvers"
+    \\ \hline
+    day
+    &
+    Required
+    \\ \hline
+    time
+    &
+    Required
+    \\ \hline
+    count
+    &
+    Required
+    \\ \hline
+    nodes
+    &
+    Optional, not used by dns2dbnode.php
+    \\ \hline
+    filters
+    &
+    Optional, comma separated list of filters to be used.
+    \\ \hline
+    \end{tabular}
+\end{center}
+
+Example:
+
+\urlb
+http://server/dns2db.php?function=topresolvers&day=20081224&time=1500&count=2&nodes=a,b
+\urle
+
+Example output:
+\exampleb
+<?xml version="1.0" encoding="ISO-8859-1">
+<items>
+ <item>
+  <position>1</position>
+  <qcount>48</qcount>
+  <domain>ip-address1</domain>
+  <displaytext>hostname1</displaytext>
+ </item>
+ <item>
+  <position>2</position>
+  <qcount>6</qcount>
+  <domain>ip-address2</domain>
+  <displaytext>hostname2</displaytext>
+ </item>
+ <status> 
+  <node name="a" result="1" /> 
+  <node name="b" result="1" /> 
+ </status> 
+</items>
+\examplee
+\newpage
+\subsection{Function: topdomains}
+	The topdomains function returns an xml formatted list of the top domains.
+
+\begin{center}
+    \begin{tabular}{ | l | p{6cm}|}
+    \hline
+    \textbf{Parameter} & \textbf{Comment}  
+    \\ \hline
+    function
+    &
+    must be "topdomains"
+    \\ \hline
+    day
+    &
+    Required
+    \\ \hline
+    time
+    &
+    Required
+    \\ \hline
+    count
+    &
+    Required
+    \\ \hline
+    nodes
+    &
+    Optional, not used by dns2dbnode.php
+    \\ \hline
+    filters
+    &
+    Optional, comma separated list of filters to be used.
+    \\ \hline
+    \end{tabular}
+\end{center}
+
+Example:
+
+\urlb
+http://servername/dns2db.php?function=topdomains&day=20081224&time=1500&count=2&nodes=a,b
+\urle
+
+Example output:
+\exampleb
+<?xml version="1.0" encoding="ISO-8859-1">
+<items>
+ <item>
+  <position>1</position>
+  <qcount>48</qcount>
+  <domain>foo.se.</domain>
+  <displaytext>foo.se.</displaytext>
+ </item>
+ <item>
+  <position>2</position>
+  <qcount>6</qcount>
+  <domain>ns.se.</domain>
+  <displaytext>ns.se</displaytext>
+ </item>
+ <status> 
+  <node name="a" result="1" /> 
+  <node name="b" result="1" /> 
+ </status> 
+</items>
+\examplee
+\newpage
+\subsection{Function: domainforresolver}
+    
+	The domainforresolver function returns an xml formatted list of the top domains for a specific resolver.
+
+\begin{center}
+    \begin{tabular}{ | l | p{6cm}|}
+    \hline
+    \textbf{Parameter} & \textbf{Comment}  
+    \\ \hline
+    function
+    &
+    must be "domainforresolver"
+    \\ \hline
+    resolver
+    &
+    Required
+    \\ \hline    
+    day
+    &
+    Required
+    \\ \hline
+    time
+    &
+    Required
+    \\ \hline
+    count
+    &
+    Required
+    \\ \hline
+    nodes
+    &
+    Optional, not used by dns2dbnode.php
+    \\ \hline
+    filters
+    &
+    Optional, comma separated list of filters to be used.
+    \\ \hline
+    \end{tabular}
+\end{center}
+
+
+Example:
+
+\urlb
+http://server/dns2db.php?function=domainforresolver&day=20081224&time=1500
+                          &count=2&resolver=::f00d:1234&filters=T,U,4,6,QT:ALL
+\urle
+
+Example output:
+\exampleb
+<?xml version="1.0" encoding="ISO-8859-1">
+<items>
+ <item>
+  <position>1</position>
+  <qcount>100</qcount>
+  <domain>foo.se.</domain>
+  <displaytext>foo.se.</displaytext>
+ </item>
+ <item>
+  <position>2</position>
+  <qcount>67</qcount>
+  <domain>bar.se.</domain>
+  <displaytext>bar.se.</displaytext>
+ </item>
+ <status> 
+  <node name="a" result="1" /> 
+  <node name="b" result="1" /> 
+ </status> 
+</items>
+\examplee
+\newpage
+        \subsection{Function: resolversfordomain}
+	The resolversfordomain function returns an xml formatted list of the top resolvers that have asked for a specific domain.
+
+
+\begin{center}
+    \begin{tabular}{ | l | p{6cm}|}
+    \hline
+    \textbf{Parameter} & \textbf{Comment}  
+    \\ \hline
+    function
+    &
+    must be "resolversfordomain"
+    \\ \hline
+    domain
+    &
+    Required
+    \\ \hline    
+    day
+    &
+    Required
+    \\ \hline
+    time
+    &
+    Required
+    \\ \hline
+    count
+    &
+    Required
+    \\ \hline
+    nodes
+    &
+    Optional, not used by dns2dbnode.php
+    \\ \hline
+    filters
+    &
+    Optional, comma separated list of filters to be used.
+    \\ \hline
+    \end{tabular}
+\end{center}
+
+Example:
+\urlb
+http://servername/dns2db.php?function=resolversfordomain&day=20081224&time=1500&count=2&domain=foo.se
+\urle
+
+Example output:
+\exampleb
+<?xml version="1.0" encoding="ISO-8859-1">
+<items>
+ <item>
+  <position>1</position>
+  <qcount>4</qcount>
+  <domain>ip-address1</domain>
+  <displaytext>hostname1</displaytext>
+ </item>
+ <item>
+  <position>2</position>
+  <qcount>3</qcount>
+  <domain>ip-address2</domain>
+  <displaytext>hostname2</displaytext>
+ </item>
+ <status>
+  <node name="a" result="1" /> 
+  <node name="b" result="1" /> 
+ </status> 
+</items>
+\examplee
+
+\newpage
+
+
+
+
+\section{XML Tags}
+
+    \subsection{Tag:\xml{items}  }
+    
+    The \xmlv{items} tag is the XML root tag for all responses in \dnsdb 
+
+
+    
+    \begin{center}
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Attribute} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        none & &
+        \\ \hline
+        \end{tabular}
+        
+        \small Attributes
+        
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Subtags} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        \xmlv{item}
+        & 
+        See comment
+        &
+        Required for all functions except nodelist or filterlist
+        \\ \hline
+        \xmlv{status}
+        &
+        Optional
+        &
+        for all functions except nodelist or filterlist
+        \\ \hline
+        \xmlv{filter}
+        &
+        See comment
+        &
+        Required only for the filterlist function
+        \\ \hline
+        \xmlv{server}
+        &
+        See comment
+        &
+        Required only for the nodelist function
+        \\ \hline
+        \end{tabular}
+        
+        \small Subtags
+    \end{center}    
+
+
+    
+    \subsection{Tag:\xml{item}  }
+    
+    The item tag is a subtag of \xmlv{items} that contains the 
+    resulting rows from the database query. Found in the \xml{items} root tag.
+    
+    \begin{center}
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Attribute} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        none & &
+        \\ \hline
+        \end{tabular}
+        
+        \small Attributes
+        
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Subtags} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        \xmlv{position}
+        &
+        Required
+        &
+        \\ \hline
+        \xmlv{qcount}
+        &
+        Required
+        &
+        \\ \hline
+        \xmlv{domain}
+        &
+        Required
+        &
+        
+        \\ \hline
+        \xmlv{displaytext}
+        &
+        Required
+        &
+        
+        \\ \hline
+        \end{tabular}
+        
+        \small Subtags
+    \end{center}        
+    
+    \subsection{Tag:\xml{position}  }
+        Contains a simple counter specifiying the order of the rows. Always starts at 1 and increases for each item.\\ 
+        Specified as tag content only and found in the \xml{item} tag.
+
+    \begin{center}
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Attribute} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        none & &
+        \\ \hline
+        \end{tabular}
+        
+        \small Attributes
+        
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Subtags} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        none
+        &
+        &
+        \\ \hline
+        \end{tabular}
+        
+        \small Subtags
+    \end{center} 
+    
+    
+    \subsection{Tag:\xml{qcount}  }
+        Specifies the number of occurrances of this item. i.e. number of queries for a specific domain.\\ 
+        Specified as tag content only and found in the \xml{item} tag.
+
+    \begin{center}
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Attribute} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        none & &
+        \\ \hline
+        \end{tabular}
+        
+        \small Attributes
+        
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Subtags} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        none
+        &
+        &
+        \\ \hline
+        \end{tabular}
+        
+        \small Subtags
+    \end{center} 
+
+    \subsection{Tag:\xml{domain}  }
+        Specifies a domain or somewhat misleading host depending on the current function.\\ 
+        Specified as tag content only and found in the \xml{item} tag.
+
+    \begin{center}
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Attribute} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        none & &
+        \\ \hline
+        \end{tabular}
+        
+        \small Attributes
+        
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Subtags} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        none
+        &
+        &
+        \\ \hline
+        \end{tabular}
+        
+        \small Subtags
+    \end{center} 
+  
+    \subsection{Tag:\xml{displaytext}  }
+        The content of \xml{displaytext} is either the same as found in 
+        \xml{domain} or a humanreadable version of whats found in \xml{domain} 
+        such as the hostname for an ip adress.\\ 
+        Specified as tag content only and found in the \xml{item} tag.
+
+    \begin{center}
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Attribute} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        none & &
+        \\ \hline
+        \end{tabular}
+        
+        \small Attributes
+        
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Subtags} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        none
+        &
+        &
+        \\ \hline
+        \end{tabular}
+        
+        \small Subtags
+    \end{center} 
+
+    \subsection{Tag:\xml{status}  }
+        The \xml{status} tag is included under the \xml{items} tags after the 
+        \xml{item} tags and is used to specify which nodes has answered the query.
+
+    \begin{center}
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Attribute} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        none & &
+        \\ \hline
+        \end{tabular}
+        
+        \small Attributes
+        
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Subtags} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        \xmlv{node}
+        &
+        & A node tag would be expected here but if it's not there it should not be treated as an error.
+        \\ \hline
+        \end{tabular}
+        
+        \small Subtags
+    \end{center}        
+
+
+
+    \subsection{Tag:\xml{node}  }
+    The \xml{node} tag is used to specify which nodes has responded to a query. 
+    This is currently used by the \dnsdb flash interface to tag nodes as green 
+    or red depending on wheter they returned data or not. 
+    Found in the \xml{status} tag.
+    \begin{center}
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Attribute} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        name
+        &
+        Required
+        &
+        Specifies the name of a node
+        \\ \hline
+        result
+        &
+        Required
+        &
+        result is 1 when the node has returned data otherwise 0 
+        \\ \hline
+        \end{tabular}
+        
+        \small Attributes
+        
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Subtags} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        none
+        & &
+        \\ \hline
+        \end{tabular}
+        
+        \small Subtags
+    \end{center}        
+
+
+
+    \subsection{Tag:\xml{filter}  }
+        Speficies an available filter. Returned by the filterlist function 
+        inside the \xml{items} tag.
+    \begin{center}
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Attribute} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        name & Required & Specifies the name of the filter
+        \\ \hline
+        code & Required & Specifies the code to be used in the filter parameter string 
+        \\ \hline
+        default & Required & default value can be 0 or 1 or one of the values in opts
+        \\ \hline
+        opts & Optional & A string with comma separated values for the dropdown menu
+        \\ \hline
+        \end{tabular}
+        \small Attributes
+        
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Subtags} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        none
+        & &
+        \\ \hline
+        \end{tabular}
+        
+        \small Subtags
+    \end{center}        
+        
+        
+    \subsection{Tag:\xml{server}  }
+    
+    Contains rows of output from running the nodelist function inside the 
+    \xml{items} tag.
+
+    \begin{center}
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Attribute} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        name & Required & The uniqe name of the node. Should contain characters and digits only.
+        \\ \hline
+        dnsname & Required & The fully qualitfied domain name of the node.
+        \\ \hline
+        displayname & Required & The name to display.
+        \\ \hline
+        description & Required & A string describing the node (may be empty).
+        \\ \hline
+        \end{tabular}
+        \small Attributes
+        
+        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \hline
+        \textbf{Subtags} & \textbf{Importance} & \textbf{Comment}  
+        \\ \hline
+        none
+        & &
+        \\ \hline
+        \end{tabular}
+        
+        \small Subtags
+    \end{center}        
+
+
+\end{document}
+
