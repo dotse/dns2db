@@ -48,6 +48,20 @@ The main purpose of the dns2db.php script is to feed the flex gui with data.
 This section contains a brief overview of the get parameters and the 
 xml output tags.
 
+\subsection{Strings}
+Throughout this document there are textfields specified both as 
+parameters to the script and strings in the response.
+With the exception of the xml fields domain,displayname,displaytext 
+and the domain parameter for the "resolversfordomain" function
+all fields should be restricted to match the following regular expression
+ (letters,digits and the characters - \verb#_# and . ):\\
+
+\verb#[-_\.A-Za-z0-9]*#\\
+
+Fields passed as get parameters should be properly percent-encoded according to
+rfc-3986.
+
+
 \subsection{Query parameters}
 \begin{center}
     \begin{tabular}{ | l | p{10cm} |}
