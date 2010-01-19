@@ -43,7 +43,8 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	depcomp install-sh missing
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/acx_sqlite3.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
@@ -68,7 +69,7 @@ MANS = $(man1_MANS)
 ETAGS = etags
 CTAGS = ctags
 DIST_SUBDIRS = $(SUBDIRS)
-DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST) $(MANS)
+DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
 am__remove_distdir = \
@@ -123,6 +124,9 @@ PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+SQLITE3 = @SQLITE3@
+SQLITE3_INCLUDES = @SQLITE3_INCLUDES@
+SQLITE3_LIBS = @SQLITE3_LIBS@
 STRIP = @STRIP@
 VERSION = @VERSION@
 ac_ct_CC = @ac_ct_CC@
@@ -176,6 +180,7 @@ target_cpu = @target_cpu@
 target_os = @target_os@
 target_vendor = @target_vendor@
 SUBDIRS = src
+ACLOCAL_AMFLAGS = -I m4
 bin_SCRIPTS = bin/dns2db.pl
 AUTOMAKE_OPTIONS = foreign
 EXTRA_DIST = etc/dns2db.conf bin/dns2db.pl bin/dns2db.sh \
@@ -438,7 +443,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/bin $(distdir)/etc $(distdir)/www
+	$(mkdir_p) $(distdir)/bin $(distdir)/etc $(distdir)/m4 $(distdir)/www
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \
@@ -658,7 +663,8 @@ ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-binSCRIPTS uninstall-info-am uninstall-man
+uninstall-am: uninstall-binSCRIPTS uninstall-info-am uninstall-local \
+	uninstall-man
 
 uninstall-info: uninstall-info-recursive
 
@@ -678,17 +684,21 @@ uninstall-man: uninstall-man1
 	maintainer-clean-generic maintainer-clean-recursive \
 	mostlyclean mostlyclean-generic mostlyclean-recursive pdf \
 	pdf-am ps ps-am tags tags-recursive uninstall uninstall-am \
-	uninstall-binSCRIPTS uninstall-info-am uninstall-man \
-	uninstall-man1
+	uninstall-binSCRIPTS uninstall-info-am uninstall-local \
+	uninstall-man uninstall-man1
 
 
 install-exec-hook:
 	@if [ -e /etc/dns2db.conf ] ; then echo "/etc/dns2db.conf not replaced"; else cp etc/dns2db.conf /etc/dns2db.conf; fi;\
 	if [ -e /etc/init.d/ ]; then\
 	   if [ ! -e /etc/init.d/dns2db.sh ] ; then\
-	       cp bin/dns2db.sh /etc/init.d/; \
+	       cp bin/dns2db.sh /etc/init.d/dns2db; \
 	   fi;\
 	fi;
+
+uninstall-local:
+	@if [ -e /etc/init.d/dns2db.sh ] ; then rm /etc/init.d/dns2db.sh ; fi; \
+	if [ -e /etc/init.d/dns2db ] ; then rm /etc/init.d/dns2db ; fi;
 
 dns2db_template: tabledefs.sql
 	sqlite3 dns2db_template <tabledefs.sql
