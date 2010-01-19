@@ -23,6 +23,7 @@ AC_PROG_CXX
 # Checks for libraries.
 AC_CHECK_LIB([trace], [trace_help])
 AC_CHECK_LIB([ldns], [ldns_version])
+AC_CHECK_LIB([sqlite3], [sqlite3_libversion_number]) 
 
 m4_include([m4/acx_sqlite3.m4])
 ACX_SQLITE3
