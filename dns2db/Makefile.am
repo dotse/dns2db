@@ -1,5 +1,7 @@
 SUBDIRS = src
 
+ACLOCAL_AMFLAGS = -I m4
+
 bin_SCRIPTS = bin/dns2db.pl
 
 AUTOMAKE_OPTIONS = foreign
@@ -24,10 +26,14 @@ install-exec-hook:
 	@if [ -e /etc/dns2db.conf ] ; then echo "/etc/dns2db.conf not replaced"; else cp etc/dns2db.conf /etc/dns2db.conf; fi;\
 	if [ -e /etc/init.d/ ]; then\
 	   if [ ! -e /etc/init.d/dns2db.sh ] ; then\
-	       cp bin/dns2db.sh /etc/init.d/; \
+	       cp bin/dns2db.sh /etc/init.d/dns2db; \
 	   fi;\
 	fi;
 	
+uninstall-local:
+	@if [ -e /etc/init.d/dns2db.sh ] ; then rm /etc/init.d/dns2db.sh ; fi; \
+	if [ -e /etc/init.d/dns2db ] ; then rm /etc/init.d/dns2db ; fi;
+
 
 dns2db_template: tabledefs.sql
 	sqlite3 dns2db_template <tabledefs.sql
