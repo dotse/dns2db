@@ -136,10 +136,10 @@
 			        myData[i].total = myData[i].qcount + " of " + total;
 			        myData[i].percentage = Number(100 * myData[i].qcount/total).toFixed(1);
 		        }
-           } else if (functionString == "resolversfordomain") {
+            } else if (functionString == "resolversfordomain") {
                 title = "Servers asking about " + ((winTitle == "") ? parameter : winTitle) + " - " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
                 colTitle = "Server"; 
-           } else if (functionString == "domainforresolver") {
+            } else if (functionString == "domainforresolver") {
                 title = "Queries from " + ((winTitle == "") ? parameter : winTitle) + " - " + idate.selectedDate.fullYear + "-" + doubleDigits(idate.selectedDate.month+1) + "-" + doubleDigits(idate.selectedDate.date) + " " + doubleDigits(int(hCombo.selectedItem)) + ":" + doubleDigits(int(mCombo.selectedItem));
                 colTitle = "Query";
 			}
@@ -148,20 +148,16 @@
 				if (myData[i].domain == sel) { serverGrid.selectedIndex = i; }
 			}
 
-         if ((functionString == "topresolvers") ||(functionString == "resolversfordomain"))
-         {
-          for( i = 0; i < myData.length; ++i ) {
-                 if ( myData[i].displaytext.length()< 2)
-                     myData[i].displaytext=myData[i].domain; 
-             }
-         }
-         myData.refresh();
-         serverGrid.verticalScrollPosition = vert;
-
-         // investigate why this fails for topresolvers
-         myData.filterFunction = filterListItem;
-         myData.refresh();
-
+            if ((functionString == "topresolvers") ||(functionString == "resolversfordomain"))
+            {
+                for( i = 0; i < myData.length; ++i ) {
+                    if ( myData[i].displaytext.length< 2)
+                        myData[i].displaytext=myData[i].domain; 
+                }
+            }
+            myData.filterFunction = filterListItem;
+            myData.refresh();
+            serverGrid.verticalScrollPosition = vert;
         } else {
             myData = null;
             if (functionString == null) {
