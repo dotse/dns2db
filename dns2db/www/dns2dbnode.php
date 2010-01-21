@@ -218,7 +218,18 @@ if (!isset($_GET['function'])) {
 }else if ($_GET['function'] == 'resolversfordomain') {
 
 	$lvl1dom = preg_match("/^(.*[.])([^.]*)$/", $_GET['domain'] , $matches);
-	$sql = "select count(id)/5 as qcount, src_addr as domain from q where rr_lvl2dom = '".$matches[1]."' and rr_lvl1dom = '".$matches[2].".' $filterand group by domain order by qcount desc".$limit;
+	$lvl1=".";
+	$lvl2=".";
+	if ($lvl1dom>0)
+	{
+    	if (isset($matches[1]))
+    	    $lvl2=strtolower($matches[1]);
+    	if (isset($matches[2]))
+    	    $lvl1=strtolower($matches[2]).".";
+	}
+	else
+	    $lvl1=strtolower($_GET['domain']).".";
+	$sql = "select count(id)/5 as qcount, src_addr as domain from q where rr_lvl2dom = '".$lvl2."' and rr_lvl1dom = '".$lvl1."' $filterand group by domain order by qcount desc".$limit;
 	$stmt = $dbh->prepare($sql);
     $stmt->execute();
 
