@@ -41,14 +41,16 @@ split_dname3 (char **rdname3, ldns_rr *rr);
 void
 split_dname3 (char **rdname3, ldns_rr *rr) {
    ldns_rdf *rowner = NULL;
+   ldns_rdf *owner = NULL;
    ldns_rdf *label = NULL;
    ldns_rdf *tmp = NULL;
    uint8_t n = 0;
    uint8_t i = 0;
    int p = 0;
 
-
-   rowner = ldns_dname_reverse (ldns_rr_owner (rr));
+   owner=ldns_rr_owner (rr);
+   if (owner == NULL) return;
+   rowner = ldns_dname_reverse (owner);
    if (rowner == NULL) return;
 
    label = ldns_dname_label (rowner, 0);
@@ -74,7 +76,7 @@ split_dname3 (char **rdname3, ldns_rr *rr) {
 
 
 
-   rdname3 [2] = rowner == NULL ? strdup (".") : ldns_rdf2str (ldns_rr_owner (rr));
+   rdname3 [2] = owner == NULL ? strdup (".") : ldns_rdf2str (owner);
    ldns_rdf_deep_free (rowner);
    if (label != NULL) {ldns_rdf_deep_free (label);}
 }
