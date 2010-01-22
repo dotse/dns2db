@@ -286,7 +286,7 @@ if ($db = new PDO('sqlite::memory:'))
     $stmt = $db->prepare( 'CREATE TABLE q (domain text,qcount int,displaytext text)');
     $stmt->execute();
     $insert = $db->prepare( "INSERT INTO q VALUES(?,?,?)");
-    $sel = $db->prepare( "select sum(qcount) as qcount,domain,displaytext from q group by domain order by qcount desc limit ".$count);
+    $sel = $db->prepare( "select sum(qcount) as qcount,domain,displaytext from q group by domain,displaytext order by qcount desc limit ".$count);
 } else {
     die($sqliteerror);
 }
@@ -387,7 +387,7 @@ while ($row = $sel->fetch()) {
 
     $dom="";
     if ($s == 1) {
-        $dom = $row[2]." (".$qclass[$row[4]]." ".$qtype[$row[3]].")";
+        $dom = $row[2];
     } else if ($s == 2) {
         $dom = $lookup->incache($row[1]);
         if ($dom=="")
