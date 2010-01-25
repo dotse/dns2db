@@ -70,14 +70,13 @@ $index    =~ s/^\"(.*)\"$/$1/;
 
 $compress  = $config{'compresspcap'};
 
-$template  = $config{'template'};
+
 
 $stime = floor(time()/$interval) * $interval + $interval;
 
 
 syslog LOG_INFO,"Starting dns2db daemon (pid:".$$.")\n";
 syslog LOG_INFO,"  workdir: ".$config{'workdir'}."\n";
-syslog LOG_INFO," template: ".$config{'template'}."\n";
 syslog LOG_INFO,"  destdir: ".$config{'destdir'}."\n";
 syslog LOG_INFO," comppcap: ".$compress."\n";
 syslog LOG_INFO,"    index: ".$index."\n";
@@ -151,7 +150,7 @@ while($keep_going == 1)
 
                 
                 # run tracedns and sqlite
-                $tracednscmd ="tracedns -p 0 pcapfile:$pcap | dns2sqlite -o -t $template -d $server -f $workdir";
+                $tracednscmd ="tracedns -p 0 pcapfile:$pcap | dns2sqlite -o -d $server -f $workdir";
 		`$tracednscmd`;
 
                 # Rename outputfile with correct time 
