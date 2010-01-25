@@ -28,6 +28,9 @@
  */
 #include "db.h"
 
+char *g_tabledefs=
+#include "tabledefs.h"
+;
 
 
 static sql_stmt_t G_STMT [] = {
@@ -394,8 +397,6 @@ store_to_db (sqlite3 *db, sql_stmt_t *s, trace_t *t, bool_t only_q, bool_t only_
          return SUCCESS;
       }
       else {
-
-
          if (ldns_pkt_qr(pdns_pkt) == 0) // is packet a question ?
          {
             if (!only_r)
@@ -426,24 +427,30 @@ isdbopen (sqlite3 *db) {
 
 // --- open_db -----------------------------------------------------------------
 int
-open_db (char *filename, sqlite3 **db) {
+open_db (char *filename, sqlite3 **db, int append) {
    int rc;
    FILE *fp;
-   
-   // simplistic test whether the database file exists
-   fp = fopen (filename, "rw");
-   if (!fp) {
-      return FAILURE;
-   }
-   fclose (fp);
-   
+
    rc = sqlite3_open (filename, db);
-      
+  
    if (rc != SQLITE_OK) {
       d2log (LOG_ERR|LOG_USER, "Could not open database file: %s", filename);
       sqlite3_close (*db);
       return FAILURE;
    }
+
+   // initialize the database
+   rc = sqlite3_exec (*db, g_tabledefs, NULL, NULL, NULL);
+   if (rc != SQLITE_OK) {
+      if (append == FALSE)
+      {
+        d2log (LOG_ERR|LOG_USER, "tabledefs failed for %s", filename);
+        sqlite3_close (*db);
+        return FAILURE;
+      }
+   }
+
+
    // enhance sqlite performance at the expense of reliability.
    rc = sqlite3_exec (*db, "pragma synchronous = OFF", NULL, NULL, NULL);
    rc = sqlite3_exec (*db, "pragma temp_store = MEMORY", NULL, NULL, NULL);
@@ -452,27 +459,6 @@ open_db (char *filename, sqlite3 **db) {
    return SUCCESS;
 }
 
-// --- create_db ---------------------------------------------------------------
-int
-create_db (FILE *template_file, char *template, char *dt_filename, bool_t overwrite, sqlite3 **db) {
-   if (!create_db_from_template (template_file, template, dt_filename, overwrite, db)) {
-      d2log (LOG_ERR|LOG_USER, "Failed to create database from template %s.", template);
-      return FAILURE;
-   }
-   
-   return SUCCESS;
-}
-
-// --- create_db_from_template -------------------------------------------------
-int
-create_db_from_template (FILE *template_file, char *template, char *filename, bool_t overwrite, sqlite3 **db) {
-    if (!copy_file (template_file,template, filename, overwrite)) {
-      d2log (LOG_ERR|LOG_USER, "Failed to copy template db from %s to %s.", template, filename);
-      return FAILURE;
-   }
-
-   return open_db (filename, db);
-}
 
 // --- close_db ----------------------------------------------------------------
 int

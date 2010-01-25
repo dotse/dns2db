@@ -31,6 +31,8 @@
 #include "global.h"
 #include "db_access.h"
 
+extern char *g_tabledefs;
+
 enum {
    BEGIN_TRANS, 
    COMMIT,
@@ -58,7 +60,7 @@ isdbopen (sqlite3 *db);
  * database instance.
  */
 int
-open_db (char *filename, sqlite3 **db);
+open_db (char *filename, sqlite3 **db, int append);
 
 /** Create a new database with "filename" from the given template.
  */

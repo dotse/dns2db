@@ -256,188 +256,220 @@ usage (char *argv0) {
 // --- main --------------------------------------------------------------------
 int 
 mainloop (int argc, char *argv []) {
-   FILE *fp = NULL;
-   sql_stmt_t *stmts = NULL;
-   trace_t *t = NULL;
-   bool_t only_q = FALSE;
-   bool_t only_r = FALSE;
-   bool_t dbf_overwrite = FALSE;
-   char *filename = NULL;
-   char *template = NULL;
-   char *folder = ".";
-   char *dt = NULL;
-   char *dt_filename = NULL;
-   unsigned long partition_interval = PARTITION_INTERVAL_SECS;
-   unsigned long partition_start = 0;
-   int opt_idx = 0;
-   int c = 0;
-   int rc = 0;
-   
-   // command line option parsing
-   struct option long_opts [] = {
-      {"help", no_argument, NULL, 'h'},
-      {"version", no_argument, NULL, 'v'},
-      {"template", required_argument, NULL, 't'},
-      {"queries_only", no_argument, NULL, 'q'},
-      {"replies_only", no_argument, NULL, 'r'},
-      {"database", required_argument, NULL, 'd'},
-      {"db_overwrite", no_argument, NULL, 'o'},
-      {"interval", required_argument, NULL, 'i'},
-      {"db_folder", required_argument, NULL, 'f'},
-      { NULL, 0, NULL, 0 }
-   };
-   
+    FILE *fp = NULL;
+    FILE *tempfp = NULL;
+    sql_stmt_t *stmts = NULL;
+    trace_t *t = NULL;
+    bool_t only_q = FALSE;
+    bool_t append = FALSE;
+    bool_t only_r = FALSE;
+    bool_t dbf_overwrite = FALSE;
+    char *filename = NULL;
+    char *folder = ".";
+    char *dt = NULL;
+    char *dt_filename = NULL;
+    unsigned long partition_interval = PARTITION_INTERVAL_SECS;
+    unsigned long partition_start = 0;
+    int opt_idx = 0;
+    int c = 0;
+    int rc = 0;
 
-   while ((c = getopt_long (argc, argv, "hvt:qrd:n:oi:f:", long_opts, &opt_idx)) != -1) {
-      switch (c) {
-         case 'v':
+    // command line option parsing
+    struct option long_opts [] = {
+        {"help", no_argument, NULL, 'h'},
+        {"version", no_argument, NULL, 'v'},
+        {"append", no_argument, NULL, 'a'},
+        {"show_schema", no_argument, NULL, 's'},
+        {"queries_only", no_argument, NULL, 'q'},
+        {"replies_only", no_argument, NULL, 'r'},
+        {"database", required_argument, NULL, 'd'},
+        {"db_overwrite", no_argument, NULL, 'o'},
+        {"interval", required_argument, NULL, 'i'},
+        {"db_folder", required_argument, NULL, 'f'},
+        { NULL, 0, NULL, 0 }
+    };
+
+
+    while ((c = getopt_long (argc, argv, "hvasqrd:n:oi:f:", long_opts, &opt_idx)) != -1) {
+        switch (c) {
+            case 'v':
             fprintf (stdout, "%s\n", DNS2SQLITE_VERSION); // VERSION defined in dns2sqlite.h
             exit (0);
             break;
-         case 't':
-            template = optarg;
+            case 's':
+            fprintf (stdout, "%s\n", g_tabledefs); // VERSION defined in dns2sqlite.h
+            exit (0);
             break;
-         case 'q':
+            case 'a':
+            append = TRUE;
+            break;
+            case 'q':
             only_q = TRUE;
             break;
-         case 'r':
+            case 'r':
             only_r = TRUE;
             break;
-         case 'd':
+            case 'd':
             filename = optarg;
             break;
-         case 'o':
+            case 'o':
             dbf_overwrite = TRUE;
             break;
-         case 'i':
+            case 'i':
             partition_interval = strtoul (optarg, NULL, NUM_BASE);
             partition_interval = (partition_interval < 1 ? 1 : partition_interval) * 60;
             break;
-         case 'f':
+            case 'f':
             folder = optarg;
             break;
-         default:
+            default:
             fprintf (stderr, "Unknown option: %c\n", c);
             // FALL THRU
-         case 'h':
+            case 'h':
             usage (argv [0]);
             return 0;
-      }
-   }
+        }
+    }
 
 
-   argc -= optind;
-   argv += optind;
+    argc -= optind;
+    argv += optind;
 
-   // handle dangling command line arguments
-   // N.B. this does not work if a pipe and a file is used at the same time.
-   // If files are given then they should be processed before the pipe is read
-   // from stdin. That is, while argc > 0 open each file and go to the main
-   // loop. When argc = 0 then open stdin and go to the main loop:
-   //
-   // while (argc > 0) {
-   //    fp = fopen (argv [argc -1], "r");
-   //    if (fp == NULL) {return FAILURE}
-   //    else {read_file (fp, ...);}
-   //    fclose (fp);
-   //    argc--;
-   // }
-   // fp = stdin;
-   
-   switch (argc) {
-      case 0:
-         fp = stdin;
-         break;
-      case 1:
-         fp = fopen (argv [argc -1], "r");
-         if (fp == NULL) {
+    // handle dangling command line arguments
+    // N.B. this does not work if a pipe and a file is used at the same time.
+    // If files are given then they should be processed before the pipe is read
+    // from stdin. That is, while argc > 0 open each file and go to the main
+    // loop. When argc = 0 then open stdin and go to the main loop:
+    //
+    // while (argc > 0) {
+    //    fp = fopen (argv [argc -1], "r");
+    //    if (fp == NULL) {return FAILURE}
+    //    else {read_file (fp, ...);}
+    //    fclose (fp);
+    //    argc--;
+    // }
+    // fp = stdin;
+
+    switch (argc) {
+        case 0:
+            fp = stdin;
+            break;
+        case 1:
+            fp = fopen (argv [argc -1], "r");
+            if (fp == NULL) {
             perror (argv [argc -1]);
             return 1;
-         }
-         break;
-      default:
-         usage (argv [0]);
-         return 1;
-   }
-   
-   if (filename == NULL) {
-   	  fprintf (stderr, "Error: No database specified \n");
-   }
+            }
+            break;
+        default:
+            usage (argv [0]);
+            return 1;
+    }
+
+    if (filename == NULL) {
+        fprintf (stderr, "Error: No database specified \n");
+    }
    
 
-   // main loop
-   // This should at least be moved into its own function.
-   while ((t = parse_line (fp)) != NULL) {
-      partition_start = p_start (partition_start, t->s, partition_interval);
+    // main loop
+    // This should at least be moved into its own function.
+    while ((t = parse_line (fp)) != NULL) {
+        partition_start = p_start (partition_start, t->s, partition_interval);
 
-      if ((unsigned long) t->s >= (partition_start + partition_interval)) {
-         rc = commit ((stmts + COMMIT)->pstmt);
-         close_db (G_DB);
-         G_DB = NULL;
-         rc = chdir ("..");
-         if (rc == -1) {
+        if ((unsigned long) t->s >= (partition_start + partition_interval)) {
+            rc = commit ((stmts + COMMIT)->pstmt);
+            close_db (G_DB);
+            G_DB = NULL;
+            rc = chdir ("..");
+            if (rc == -1) {
             perror (NULL);
             return FAILURE;
-         }
-         partition_start += partition_interval;
-      }
-      
-      if (!isdbopen (G_DB)) {
-         if (!open_db (filename, &G_DB)) {
-            dt = sec_to_datetime_str (partition_start);
-            if (dt == NULL) {
-               return FAILURE;
             }
+            partition_start += partition_interval;
+        }
+        // check if database is open
+        if (!isdbopen (G_DB)) {
+          
+            // create directory name
+            if (dt)
+                XFREE(dt);
+            dt = sec_to_datetime_str (partition_start);
+            if (!dt) 
+                return FAILURE;
             
+            // generate path 
+            if (dt_filename)
+                XFREE(dt_filename);
             dt_filename = make_dt_filename (dt, filename);
             if (dt_filename == NULL) {
-               XFREE(dt);
-               return FAILURE;
+                XFREE(dt);
+                return FAILURE;
             }
-            
-            FILE * template_file = fopen(template,"rb");
-            if (template_file == NULL) {
-                d2log (LOG_ERR|LOG_USER, "Failed to open database template %s",template);
+
+            // create directory
+            if (make_db_dir (dt, folder) != SUCCESS) {
                 XFREE(dt);
                 XFREE(dt_filename);
                 return FAILURE;
             }
+            XFREE(dt);
 
+            if (dbf_overwrite)
+            {
+                rc = unlink(dt_filename);
+                if (rc==0)
+                    d2log (LOG_ERR|LOG_USER, "Unlinked file %s (due to overwrite flag).",dt_filename);
+                else
+                {
+                    rc = errno;
+                    if (rc != ENOENT)
+                    {
+                        d2log (LOG_ERR|LOG_USER, "Failed to unlink %s (overwrite) file code %d.",dt_filename,rc);
+                        XFREE(dt);
+                        XFREE(dt_filename);
+                        return FAILURE;
+                    }
+                }
+            }
+            else
+            {
+                if (append == FALSE)
+                {
+                    // simplistic test whether the database file exists
+                    tempfp = fopen (dt_filename, "r");
+                    if (tempfp) {
+                        d2log (LOG_ERR|LOG_USER, "Error: Database file %s exists ! ( use -a to append or -o owerwrite ).",dt_filename);
+                        fclose (tempfp);
+                        return FAILURE;
+                    }
+                }
+            }
             
-       		if (make_db_dir (dt, folder) != SUCCESS) {
-            	XFREE(dt);
+            if (!open_db (dt_filename, &G_DB, append)) {
+                d2log (LOG_ERR|LOG_USER, "Failed to create new db %s.",dt_filename);
                 XFREE(dt_filename);
                 return FAILURE;
             }
-            XFREE(dt);
-            
-            
-            if (!create_db (template_file, template, dt_filename, dbf_overwrite, &G_DB)) {
-               d2log (LOG_ERR|LOG_USER, "Failed to create new db.");
-               XFREE(dt_filename); 
-               return FAILURE;
+  
+            if (!prepare_stmts (G_DB, &stmts)) {
+                d2log (LOG_ERR|LOG_USER, "Failed to prepare sql statements for db: %s.",dt_filename);
+                close_db (G_DB);
+                return FAILURE;
             }
-            XFREE(dt_filename);
-         }
-         if (!prepare_stmts (G_DB, &stmts)) {
-            d2log (LOG_ERR|LOG_USER, "Failed to prepare sql statements.\n");
-            close_db (G_DB);
-            return FAILURE;
+            rc = start_transaction ((stmts + BEGIN_TRANS)->pstmt);
         }
-         rc = start_transaction ((stmts + BEGIN_TRANS)->pstmt);
-      }
 
-      if (!store_to_db (G_DB, stmts, t, only_q, only_r)) {
-         d2log (LOG_ERR|LOG_USER, "Failed to store data to db.\n");
-      }
+        if (!store_to_db (G_DB, stmts, t, only_q, only_r)) {
+            d2log (LOG_ERR|LOG_USER, "Failed to store data to db.\n");
+        }
 
-      trace_free (t);
-   }
+        trace_free (t);
+    }
 
-   // clean up before exit
-   fclose (fp);
-   rc = commit ((stmts + COMMIT)->pstmt);
-   close_db (G_DB);
+    // clean up before exit
+    fclose (fp);
+    rc = commit ((stmts + COMMIT)->pstmt);
+    close_db (G_DB);
 }
 
 

@@ -44,15 +44,16 @@
 #define NUM_BASE 10
 
 static char *G_OPTS [] = { 
-   "--help | -h", 
-   "--version | -v", 
-   "--template | -t template",  
-   "--queries_only | -q",
-   "--replies_only | -r", 
-   "--database | -d dbf", 
-   "--db_overwrite | -o", 
-   "--interval | -i min",
-   "--db_folder | -f dir"
+   "--help | -h             shows this help", 
+   "--version | -v          show dns2sqlite version", 
+   "--show_schema | -s      shows the queries that generate the sql tables",  
+   "--queries_only | -q     only log dns queries",
+   "--replies_only | -r     only log dns replies", 
+   "--database | -d dbf     database filename", 
+   "--append | -a           append to existing databasefiles",  
+   "--db_overwrite | -o     overwrite existing databasefiles", 
+   "--interval | -i min     split interval",
+   "--db_folder | -f dir    database folder"
 };
 
 #define NUM_OPTS (sizeof (G_OPTS) / sizeof (G_OPTS [0]))

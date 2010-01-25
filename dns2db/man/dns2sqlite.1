@@ -5,8 +5,8 @@
 - a tool for organizing DNS traffic into searchable sqlite databases (part of DNS2db) 
 .SH SYNOPSIS
 .B dns2sqlite
-[ \-\-help | -h ] [ \-\-version | -v ] 
- [ \-\-template | -t template ] [ \-\-queries_only | -q ]
+[ \-\-help | -h ] [ \-\-show_schema | -s ] [ \-\-version | -v ] 
+ [ \-\-append | -a ] [ \-\-queries_only | -q ]
  [ \-\-replies_only | -r ] [ \-\-database | -d dbf ]
  [ \-\-db_overwrite | -o ] [ \-\-interval | -i min ]
  [ \-\-db_folder | -f dir ]
@@ -24,8 +24,14 @@ prints commandline help
 .B --version | -v 
 prints the current version
 .TP
-.B --template | -t template
-path to template database. Create the template database using 'sqlite3 dns2db_template <tabledefs.sql'.
+.B --append | -a
+appends to existing database files instead of failing
+.TP
+.B --db_overwrite | -o
+overwrites existing database files instead of failing
+.TP
+.B --show_schema | -s
+show the sql generating the tables in each database file
 .TP
 .B --queries_only | -q
 only store query packets
@@ -36,9 +42,6 @@ only store reply packets
 .B --database | -d
 specifies the prefix for the database filenames. eg 
 -d FOO would produce files named FOO-YYYYMMDDHHMM.db
-.TP
-.B --db_overwrite | -o
-overwrites existing database files
 .TP
 .B --interval | -i min
 specifies the split interval in minutes. The split is always made on an even split interval. eg. starting with -i 5 on 12:03:23 will produce a file named prefix-YYYYMMDD1200.db and will split at 12:05:00.  
@@ -52,7 +55,7 @@ The following command reads the file output_from_tracedns.ascii and puts all que
 /foo/dbfiles/YYYYMMDD/FOO-YYYYMMDDHHMM.db splitting into a new file every five minutes.
 
 .TP
-dns2sqlite -t /foo/dns2db_template -d FOO -i 5 \\
+dns2sqlite -d FOO -i 5 \\
  -f /foo/dbfiles/ -q output_from_tracedns.ascii
 .SH AUTHOR
 \ .SE (The Internet Infrastructure Foundation) - opensource.iis.se

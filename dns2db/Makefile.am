@@ -16,7 +16,9 @@ EXTRA_DIST += www/dns2dbnode.php
 EXTRA_DIST += www/dns2dbnode_conf.php.example  
 EXTRA_DIST += www/index.php  
 EXTRA_DIST += www/reversedb.db3
-EXTRA_DIST += dns2db_template
+EXTRA_DIST += docs/userman.pdf
+EXTRA_DIST += docs/xmldoc.pdf
+EXTRA_DIST += www/reversedb.db3
 EXTRA_DIST += GUI_INSTALL
 
 man1_MANS  = man/dns2sqlite.1
@@ -34,6 +36,11 @@ uninstall-local:
 	@if [ -e /etc/init.d/dns2db.sh ] ; then rm /etc/init.d/dns2db.sh ; fi; \
 	if [ -e /etc/init.d/dns2db ] ; then rm /etc/init.d/dns2db ; fi;
 
+docs/userman.pdf: ../docs/userman.pdf
+	mkdir docs; \
+	cp ../docs/userman.pdf docs/
 
-dns2db_template: tabledefs.sql
-	sqlite3 dns2db_template <tabledefs.sql
+docs/xmldoc.pdf: ../docs/xmldoc.pdf
+	mkdir docs; \
+	cp ../docs/xmldoc.pdf docs/
+
