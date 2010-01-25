@@ -197,10 +197,6 @@ server="servername"
 ## Ramdisk where database is created and indexed
 workdir=/tmp/workdir
 
-## Template database file (generate by issuing 
-## "sqlite3 template.db <tabledefs.sql")
-template=/path_to_/dns2db_template
-
 ## Final directory where databases and pcap files are stored
 # make sure path ends with trailing "/"
 destdir=/tmp/outputdir/
@@ -246,18 +242,12 @@ on q (rr_type); create index if not exists resanddom on q
 \end{Verbatim}
 
 The fields that must be changed to have a working collector 
-are workdir, template, destdir, user and interface.
+are workdir, destdir, user and interface.
 
 \begin{itemize}
 \item The parameter \textbf{workdir} specifies a working directory for optimal performance this 
 should be placed on a ramdisk with enough space for pcap files and database 
 files for three peek intervals.
-
-\item The  \textbf{template} path must point to the template.db file which has to be generated 
-if \dnsdb is installed from svn. The command to generate the file is 
-\begin{Verbatim}[fontsize=\relsize{-1}]
-sqlite3 template.db <tabledefs.sql
-\end{Verbatim}
 
 \item The  \textbf{destdir} path points to the path where the database files are to be stored.
 \item The  \textbf{user} parameter specifies the user that will own the resulting files. 
