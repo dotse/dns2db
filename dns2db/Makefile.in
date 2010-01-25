@@ -186,7 +186,8 @@ AUTOMAKE_OPTIONS = foreign
 EXTRA_DIST = etc/dns2db.conf bin/dns2db.pl bin/dns2db.sh \
 	www/dns2db.php www/dns2db.swf www/dns2db_conf.php.example \
 	www/dns2dbnode.php www/dns2dbnode_conf.php.example \
-	www/index.php www/reversedb.db3 dns2db_template GUI_INSTALL
+	www/index.php www/reversedb.db3 docs/userman.pdf \
+	docs/xmldoc.pdf www/reversedb.db3 GUI_INSTALL
 man1_MANS = man/dns2sqlite.1 man/tracedns.1
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
@@ -443,7 +444,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/bin $(distdir)/etc $(distdir)/m4 $(distdir)/www
+	$(mkdir_p) $(distdir)/bin $(distdir)/docs $(distdir)/etc $(distdir)/m4 $(distdir)/www
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \
@@ -700,8 +701,13 @@ uninstall-local:
 	@if [ -e /etc/init.d/dns2db.sh ] ; then rm /etc/init.d/dns2db.sh ; fi; \
 	if [ -e /etc/init.d/dns2db ] ; then rm /etc/init.d/dns2db ; fi;
 
-dns2db_template: tabledefs.sql
-	sqlite3 dns2db_template <tabledefs.sql
+docs/userman.pdf: ../docs/userman.pdf
+	mkdir docs; \
+	cp ../docs/userman.pdf docs/
+
+docs/xmldoc.pdf: ../docs/xmldoc.pdf
+	mkdir docs; \
+	cp ../docs/xmldoc.pdf docs/
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
