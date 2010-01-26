@@ -48,11 +48,11 @@ uninstall-local:
 	if [ -e /etc/init.d/dns2db ] ; then rm /etc/init.d/dns2db ; fi;
 
 docs/userman.pdf: ../docs/userman.pdf
-	mkdir docs; \
+	if [ ! -d docs ]; then mkdir docs; fi; \
 	cp ../docs/userman.pdf docs/
 
 docs/xmldoc.pdf: ../docs/xmldoc.pdf
-	mkdir docs; \
+	if [ ! -d docs ]; then mkdir docs; fi; \
 	cp ../docs/xmldoc.pdf docs/
 
 
