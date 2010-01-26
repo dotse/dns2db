@@ -752,7 +752,7 @@ Example output:
     or red depending on wheter they returned data or not. 
     Found in the \xml{status} tag.
     \begin{center}
-        \begin{tabular}{ | p{2.1cm} | p{2cm} | p{9cm} |}
+        \begin{tabular}{ | p{2.6cm} | p{2.0cm} | p{8.5cm} |}
         \hline
         \textbf{Attribute} & \textbf{Importance} & \textbf{Comment}  
         \\ \hline
@@ -767,6 +767,19 @@ Example output:
         Required
         &
         result is 1 when the node has returned data otherwise 0 
+        \\ \hline
+        scriptversion
+        &
+        Optional
+        &
+        returns a version string for the dns2dbnode.php script
+        \\ \hline
+        dns2sqlite\_version
+        &
+        Optional
+        &
+        returns a version string for the dns2sqlite command that generated 
+        the database for the specified period.
         \\ \hline
         \end{tabular}
         
