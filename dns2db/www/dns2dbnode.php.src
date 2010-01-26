@@ -292,5 +292,23 @@ while ($row = $stmt->fetch()) {
     echo "    <displaytext>".$dom."</displaytext>\n";
     echo "  </item>\n";
 }
+
+$sql = "select value from meta where key = 'dns2sqlite_version';";
+$dns2sqlite_version = "pre 2.2.1";
+if(($stmt2 = $dbh->prepare($sql))!=FALSE)
+{
+	$stmt2->execute();
+	if ($row = $stmt2->fetch())
+	{
+		$dns2sqlite_version=$row[0];
+	}
+}
+echo "  <status>\n";
+echo "    <node scriptversion=\"";
+?>VERSION<?php #version_here DO NOT EDIT THIS LINE
+echo "\" dns2sqlite_version=\"".$dns2sqlite_version."\" />\n";
+echo "  </status>\n";
+
+
 echo "</items>\n";
 ?>

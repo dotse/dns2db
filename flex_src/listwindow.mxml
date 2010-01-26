@@ -81,19 +81,38 @@
 	private function resultHandler(event:ResultEvent):void {
 		if (serverRequest.lastResult.items != null) {
 		    var server:* = serverRequest.lastResult.items.status.node;
+            var status:String = "?";
+            var attribute:*;
 			var dd:Boolean = server is ArrayCollection;
 			if (dd) 
 			{
-		        parentApplication.serverwin.setStatus(title,7)
 			    var it:int;
                 for( it = 0; it < server.length; ++it )
                 {
-                    parentApplication.serverwin.setStatus(server[it].name,server[it].result);
+                    status = "" ;
+
+                    var attr:* = server[it];
+                    for  (attribute in attr) 
+                    {
+                         status +=  attribute +" = "+ attr[attribute];
+                         status += "\n";
+                    }
+
+                    parentApplication.serverwin.setStatus(server[it].name,server[it].result,status);
                 }
 			} 
 			else 
 			{
-                parentApplication.serverwin.setStatus(server.name,server.result);
+                    status = "" ;
+
+                
+                    for  (attribute in server) 
+                    {
+                         status +=  attribute +" = "+ server[attribute];
+                         status += "\n";
+                    }
+
+                    parentApplication.serverwin.setStatus(server.name,server.result,status);
             }
 
 			dd = serverRequest.lastResult.items.item is ArrayCollection;

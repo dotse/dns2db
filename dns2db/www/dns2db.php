@@ -312,6 +312,8 @@ foreach($valid as $i) {
 ##############  use multi curl to get result from all servers
 $cha = array();
 $success = array();
+$dns2sqlite_version = array();
+$dns2dbnode_version = array();
 $count = 0;
 foreach($nodearray as $i) {
     $ch = curl_init();
@@ -363,12 +365,22 @@ foreach($res as $xmlstring) {
 
     	foreach ($xml as $item)
     	{
-    	    $success[$counter]="1";
-	        $dom =   $item->domain;
-	        $count = $item->qcount;
-	        $disp =  $item->displaytext;
-
-            $insert->execute(array($dom,$count,$disp));
+            if (isset($item->domain))
+            {
+    	        $success[$counter]="1";
+	            $dom =   $item->domain;
+	            $count = $item->qcount;
+	            $disp =  $item->displaytext;
+	            $insert->execute(array($dom,$count,$disp));
+            }
+            else
+            {
+                if (isset($item->node))
+		        {
+			        $dns2sqlite_version[$counter] = $item->node->attributes()->dns2sqlite_version;
+			        $dns2dbnode_version[$counter] = $item->node->attributes()->scriptversion;
+		        }
+            }
     	}
     }
     catch (Exception $e)
@@ -410,7 +422,7 @@ while ($row = $sel->fetch()) {
 $count = 0;
 echo "  <status>\n";
 foreach($success as $res) {
-    echo "    <node name=\"".$nodearray[$count]['name']."\" result=\"$res\" />\n";
+    echo "    <node name=\"".$nodearray[$count]['name']."\" result=\"$res\" scriptversion=\"$dns2dbnode_version[$count]\" dns2sqlite_version=\"".$dns2sqlite_version[$count]."\" />\n";
     $count++;
 }
 echo "  </status>\n";

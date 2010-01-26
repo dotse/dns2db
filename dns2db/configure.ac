@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT([DNS2db], [2.2], [niclas.rosell@iis.se], [DNS2db])
+AC_INIT([DNS2db], [2.2.1], [niclas.rosell@iis.se], [DNS2db])
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADER([config.h])
 AC_CANONICAL_TARGET

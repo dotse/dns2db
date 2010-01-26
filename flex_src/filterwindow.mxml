@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Id: filterwindow.mxml 6 2007-05-07 09:11:42Z jakob $  -->
+
+
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" 
+	close="fadeOut.play([this]);"
+	creationComplete="TimerStart();"
+	layout="horizontal" 
+	width="840" height="50"
+	title="loading, please wait..."
+	showCloseButton="true"
+	resizeEffect="resizeEffect"
+	headerHeight="15"
+	horizontalScrollPolicy="off"
+	verticalScrollPolicy="off"
+	keyDown="windowKeyPress(event)"
+	doubleClickEnabled="true"
+	x="300"
+	y="50"
+	doubleClick="windowDoubleClick(event);"
+    backgroundColor="#D3D7D9">
+
+<mx:Resize heightFrom="366" heightTo="30" id="windowResizeEffect1" duration="500"/>
+<mx:Resize heightFrom="366" heightTo="0" id="resizeEffect1" duration="500"/>
+<mx:Resize heightFrom="0" heightTo="66" id="resizeEffect2" duration="200"/>
+<mx:Fade id="fade" alphaFrom="0" alphaTo="1" duration="500" /> 
+<mx:Blur id="blur" blurXTo="10" blurYTo="10" blurXFrom="0" blurYFrom="0" duration="500" /> 
+<mx:Fade id="fadeOut" alphaTo="0" duration="500" effectStart="{resizeEffect1.play([this]); blur.play([this])}" effectEnd="{PopUpManager.removePopUp(this);}"/>
+
+<mx:HTTPService 
+    id="filterlistRequest" 
+    fault="filterlistRequest.clearResult(true);"
+    useProxy="false" 
+	concurrency="multiple"
+	requestTimeout="45"
+    showBusyCursor="true"
+	result="resultHandler(event)"/>
+
+
+    <mx:Style>
+
+        .greenStyle {
+            color: green;
+            textRollOverColor: green;
+            textSelectedColor: green;
+            themeColor: green;
+        }
+
+        .redStyle {
+            color: red;
+            textRollOverColor: red;
+            textSelectedColor: red;
+            themeColor: red;
+        }
+    </mx:Style>
+
+
+	<mx:Script><![CDATA[
+		import mx.collections.ArrayCollection;
+		import mx.utils.ArrayUtil;
+		import mx.rpc.events.ResultEvent;
+		import mx.events.ListEvent;
+		import mx.collections.Sort;
+        import mx.collections.SortField;
+        import mx.managers.PopUpManager;
+        import mx.controls.CheckBox;
+        import mx.controls.ComboBox;
+        import mx.controls.Text;
+		
+                
+   		public var vert:int = 0;
+   		public var sort:Sort = null;
+   		public var sel:String = null;
+        public var functionString:String = null;
+        public var parameter:String = null;
+   		public var winTitle:String = '';
+   		public var server:Boolean = false;
+        public var interval:Interval = new Interval(null,0,0);
+        public var touch_count:int = -1;
+		private var expcontant:Number = 0.00000007;
+		private var intervalText:String;
+		private var serverName2Num:Object = {};
+
+		[Bindable]
+		private var serverData:ArrayCollection;
+
+		[Bindable]
+   		private var colTitle:String = "";
+
+		private function resultHandler(event:ResultEvent):void 
+        {
+             title="Filters";
+             var it:int;
+             if (filterlistRequest.lastResult.items != null) 
+             {
+                var dd:Boolean = filterlistRequest.lastResult.items.filter is ArrayCollection;
+                         
+                if (dd) 
+                {
+                    serverData = filterlistRequest.lastResult.items.filter;
+                    for( it = 0; it < serverData.length; ++it ) 
+                    {
+                        if (serverData[it].opts)
+                        {
+                            
+
+                            var txt:Text = new Text();
+                            txt.text = serverData[it].name;
+                            addChild(txt);
+                            
+                                
+                            var combo:ComboBox = new ComboBox();
+                        
+                            var data:Array = [];
+                            var opt:Array = serverData[it].opts.split(",");
+
+                            var cnt:int=0;
+                            var sel:int=0;
+                            for each( var item:Object in opt )
+                            {
+                               data.push( { label: item, data: item } );
+                               if (serverData[it].default == item)
+                                    sel=cnt;
+                               cnt++;
+                            }
+                            
+                            serverData[it].onfield=serverData[it].default;
+
+                            combo.dataProvider = data;
+                            combo.move(10, 20);
+  //                          combo.width = 80;
+                            combo.height = 16    ;
+                            combo.id = "" + it;
+                            combo.rowCount=20;
+                            combo.addEventListener(ListEvent.CHANGE, comboBox);
+                            combo.selectedIndex=sel;
+                            addChild(combo);
+                        }
+                        else
+                        {
+                            serverData[it].onfield = serverData[it].default;
+                            var checkBox:CheckBox = new CheckBox();
+                            checkBox.label = serverData[it].name;
+                            checkBox.move(10, 20);
+//                            checkBox.width = 80;
+                            checkBox.height = 16    ;
+                            checkBox.id = "" + it;
+                            checkBox.addEventListener(MouseEvent.CLICK, clickBox);
+
+                            serverName2Num[serverData[it].name] = it;
+
+                            //checkBox.label = 
+                            if (serverData[it].onfield=="0")
+                                checkBox.selected = false;
+                            else
+                                checkBox.selected = true;
+
+                            addChild(checkBox);
+                        }
+                    }
+                
+                } 
+                else 
+                {
+                    serverData = new ArrayCollection([{name: filterlistRequest.lastResult.items.filter.name,
+												displayname: filterlistRequest.lastResult.items.filter.code,
+													dnsname: filterlistRequest.lastResult.items.filter.default }]);
+                    serverData[0].onfield = true;
+                    var checkBox2:CheckBox = new CheckBox();
+                    checkBox2.label = serverData[0].name;
+                    checkBox2.move(10, 10);
+                    checkBox2.width = 200;
+                    checkBox2.height = 20;
+                    checkBox2.id = "0";
+                    checkBox2.addEventListener(MouseEvent.CLICK, clickBox);
+                    serverName2Num[serverData[0].name] = 0;
+
+                    checkBox2.selected=serverData[0].onfield;
+                    addChild(checkBox2);
+                }
+
+                if (sort != null) {
+                    serverData.sort = sort;
+                    serverData.refresh();
+                }
+
+                serverData.refresh();
+
+                buildFilterString();
+                parentApplication.serversTouch++;
+                //serverGrid.verticalScrollPosition = vert;
+             } 
+             else { serverData = null; }
+		}
+		
+		private function doubleDigits(val:int): String
+		{
+            if (val > 9) {return String(val)} else {return "0" + String(val)}
+		}
+
+
+        public function TimerStart():void {
+            filterlistRequest.url=parentApplication.scriptUrl + "?function=filterlist";
+            filterlistRequest.url +=  "&" + Math.random();
+            filterlistRequest.send();
+
+            x = 10; y = 10; showCloseButton=false; 
+
+            fade.play([this]);
+        }
+
+        private function windowDoubleClick(event: MouseEvent):void {
+            if ((event.stageY-y) < 30) {
+                windowResizeEffect1.heightFrom = 366;
+                if (height < 50) {
+                    windowResizeEffect1.play([this],true);
+                } else {
+                    windowResizeEffect1.play([this],false);
+                }
+            }
+        }
+
+        private function windowKeyPress(event:KeyboardEvent):void {
+        }
+
+         
+        private function copyToClipBoard(event:ListEvent):void {
+           System.setClipboard(event.itemRenderer.data.displaytext);
+        }
+
+        public function buildFilterString():void {
+            var str:String = "&filters=";
+            var sep:String = "";
+            for( var it:int = 0; it < serverData.length; ++it ) 
+            {
+                if (serverData[it].onfield == true)
+                {
+                    str = str + sep + serverData[it].code;
+                    sep=",";
+                }
+                else
+                    if (serverData[it].onfield != false)
+                    {
+                        str = str + sep + serverData[it].code +":"+ serverData[it].onfield;
+                        sep=",";
+                    }
+                
+                
+            }
+            parentApplication.filterstring = str;
+            
+            //title=str;
+        }
+
+
+        public function clickBox(evt:Event):void {
+        
+            serverData[evt.currentTarget.id].onfield=evt.currentTarget.selected;
+            buildFilterString();
+            parentApplication.serversTouch++;
+        }
+
+        public function comboBox(evt:Event):void {
+            serverData[evt.currentTarget.id].onfield=evt.currentTarget.value;
+            buildFilterString();
+            parentApplication.serversTouch++;
+        }
+
+
+        private function cloneWin(event:MouseEvent):void {
+            parentApplication.openWindow(functionString, null, server, "");
+        }
+		]]>
+	</mx:Script>
+</mx:TitleWindow>

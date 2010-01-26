@@ -225,10 +225,11 @@
             parentApplication.serversTouch++;
         }
 
-        public function setStatus(str:String , val:int) : void
+        public function setStatus(str:String , val:int, toolTip:String) : void
         {
             var idx:int = serverName2Num[str];
             var c:* = serverCB[idx];
+            c.toolTip = toolTip;
 
             if ( val == 0 )
                 c.styleName = "redStyle";

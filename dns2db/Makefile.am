@@ -21,6 +21,17 @@ EXTRA_DIST += docs/xmldoc.pdf
 EXTRA_DIST += www/reversedb.db3
 EXTRA_DIST += GUI_INSTALL
 
+BUILT_SOURCES = www/dns2dbnode.php
+
+
+#tabledefs.h: Makefile
+#	cat tabledefs.sql | sed -e "s/\"/\\\"/" | sed -e "s/\(.*\)/\"\1\\\\n\"/" >$@
+
+www/dns2dbnode.php: Makefile configure www/dns2dbnode.php.src
+	echo generation dns2dbnode.php with version ${VERSION};\
+	sed -e "s/\(?>\).*\(<?php #version_here DO NOT EDIT THIS LINE\)/\1${VERSION}\2/" www/dns2dbnode.php.src >www/dns2dbnode.php
+
+
 man1_MANS  = man/dns2sqlite.1
 man1_MANS += man/tracedns.1
 
@@ -43,4 +54,6 @@ docs/userman.pdf: ../docs/userman.pdf
 docs/xmldoc.pdf: ../docs/xmldoc.pdf
 	mkdir docs; \
 	cp ../docs/xmldoc.pdf docs/
+
+
 

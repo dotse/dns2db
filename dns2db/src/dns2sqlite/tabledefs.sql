@@ -231,6 +231,13 @@ create table dns_q_class (
    description text
 );
 
+-- intended to store meta data such as version numbers etc
+create table meta (
+   id integer primary key,
+   key text,
+   value text
+);
+
 create view dns_class_all 
 as
    select id, class, description from dns_class
