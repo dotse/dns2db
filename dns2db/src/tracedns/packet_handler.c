@@ -198,7 +198,8 @@ get_seg_payload (
          data      = (uint8_t *) trace_get_payload_from_tcp (tcp, rest); 
 
          // get the assembled TCP packet and remove the individual segments.
-         p = assemble_tcp (src_ip, dst_ip, *src_port, dst_port, rest, tcp->seq, 
+         if (data)
+            p = assemble_tcp (src_ip, dst_ip, *src_port, dst_port, rest, tcp->seq, 
                            data, *rest, tcp->syn, tcp->fin, tcp->rst, tcp->ack);
          
          break;
