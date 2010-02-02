@@ -12,7 +12,7 @@ EXTRA_DIST += bin/dns2db.sh
 EXTRA_DIST += www/dns2db.php  
 EXTRA_DIST += www/dns2db.swf  
 EXTRA_DIST += www/dns2db_conf.php.example  
-EXTRA_DIST += www/dns2dbnode.php  
+EXTRA_DIST += www/dns2dbnode.php.src
 EXTRA_DIST += www/dns2dbnode_conf.php.example  
 EXTRA_DIST += www/index.php  
 EXTRA_DIST += www/reversedb.db3
@@ -20,6 +20,9 @@ EXTRA_DIST += docs/userman.pdf
 EXTRA_DIST += docs/xmldoc.pdf
 EXTRA_DIST += www/reversedb.db3
 EXTRA_DIST += GUI_INSTALL
+EXTRA_DIST += man/dns2sqlite.1
+EXTRA_DIST += man/tracedns.1
+EXTRA_DIST += src/dns2sqlite/tabledefs.sql
 
 BUILT_SOURCES = www/dns2dbnode.php
 
