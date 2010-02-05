@@ -412,7 +412,7 @@ while ($row = $sel->fetch()) {
         $dom = $row[1];
     }
 
-    $row[1] = preg_replace  ( "/^::/"  , ""  , $row[1] );
+#    $row[1] = preg_replace  ( "/^::/"  , ""  , $row[1] );
     $dom    = preg_replace  ( "/^::/"  , ""  , $dom );
     echo "  <item>\n";
     echo "    <position>".$i."</position>\n";
