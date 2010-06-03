@@ -44,7 +44,7 @@ specifies the prefix for the database filenames. eg
 -d FOO would produce files named FOO-YYYYMMDDHHMM.db
 .TP
 .B --interval | -i min
-specifies the split interval in minutes. The split is always made on an even split interval. eg. starting with -i 5 on 12:03:23 will produce a file named prefix-YYYYMMDD1200.db and will split at 12:05:00.  
+specifies the split interval in minutes. The split is always made on an even split interval. eg. starting with -i 5 on 12:03:23 will produce a file named prefix-YYYYMMDD1200.db and will split at 12:05:00. Default is to split every 5 minutes.
 .TP
 .B --db_folder | -f dir
 specifies the destination database folder
