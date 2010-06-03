@@ -452,7 +452,6 @@ open_db (char *filename, sqlite3 **db, int append) {
    
    char sql[500];
    sprintf(sql,"INSERT INTO meta (key,value) VALUES (\"dns2sqlite_version\",\"%s\")",PACKAGE_VERSION);
-   printf ("%s",sql);
    rc = sqlite3_exec (*db, sql, NULL, NULL, NULL);
    if (rc != SQLITE_OK) {
         d2log (LOG_ERR|LOG_USER, "failed to write version into %s %s", filename,sql);
