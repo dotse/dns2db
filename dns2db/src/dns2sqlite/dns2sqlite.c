@@ -152,7 +152,7 @@ make_dt_filename (char *dt, char *filename) {
    
    strncpy (dt_f, filename, fn_len);
    strncpy (dt_f + fn_len, dt, dt_len);
-   dt_f [dt_flen + 1] = '\0';
+   dt_f [dt_flen] = '\0';
    return dt_f;
 }
 
