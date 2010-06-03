@@ -175,6 +175,7 @@ get_seg_payload (
    in6addr_t *dst_ip,
    uint16_t *src_port
 ) {
+   unsigned char *port=0;  
    uint8_t *p = NULL;
    libtrace_udp_t *udp = NULL;
    libtrace_tcp_t *tcp = NULL;
@@ -185,13 +186,16 @@ get_seg_payload (
    switch (proto) {
       case IPPROTO_UDP:
          udp = (libtrace_udp_t *) seg;
-         *src_port = udp->source;
+         port = (unsigned char *)&udp->source;
+         *src_port = ( ((unsigned short)(port[0]))<<8) | port[1];
+
          p = get_udp (udp, rest);
       break;
       case IPPROTO_TCP:
 
          tcp       = (libtrace_tcp_t *) seg;
-         *src_port = tcp->source;
+         port = (unsigned char *)&tcp->source;
+         *src_port = ( ((unsigned short)(port[0]))<<8) | port[1];
          dst_port  = tcp->dest;
 
          // data is freed by libtrace
