@@ -1,3 +1,5 @@
+<h1>DNS2db is no longer supported and has been replaced by the superior PacketQ. PacketQ is much faster and no longer relies on Sqlite. Go to https://github.com/dotse/packetq/ for more information. The information and source on this page is provided for historical reasons.</h1>
+
 This is the DNS2db distribution.
 
 Quick install:
